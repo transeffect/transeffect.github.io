@@ -364,23 +364,34 @@
     }
 
     noteOff(note) {
-      if (!this.ctx || this.ctx.state !== "running") return;
-
+      if (!this.ctx) return;
+    
       const voice = this.active.get(note);
       if (!voice) return;
-
+    
       const now = this.ctx.currentTime;
       const { osc, gain } = voice;
-
-      // Release envelope
+    
+      // Choose release time based on mode
+      // Piano: damper cuts faster, but not instantly
+      // Organ: slightly longer is pleasant, but still quick
+      const release =
+        (typeof playMode !== "undefined" && playMode === "piano")
+          ? 0.06   // 60ms: crisp but not abrupt
+          : 0.10;  // 100ms: smooth
+    
+      // Prevent clicks: start from the current gain, then ramp down
+      const current = Math.max(gain.gain.value, 0.0001);
       gain.gain.cancelScheduledValues(now);
-      gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-
-      osc.stop(now + 0.14);
-
+      gain.gain.setValueAtTime(current, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+    
+      // Stop oscillator slightly after release completes
+      osc.stop(now + release + 0.03);
+    
       this.active.delete(note);
     }
+
 
     allOff() {
       for (const note of Array.from(this.active.keys())) {
