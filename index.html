@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.002
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.003
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -300,8 +300,10 @@
       if (!this.ctx || this.ctx.state !== "running") return;
     
       // If already active, ignore (prevents retrigger spam while dragging)
-      if (this.active.has(note)) return;
-    
+      if (this.active.has(note)) {
+        this.noteOff(note); // damp the old voice quickly
+      }
+
       const now = this.ctx.currentTime;
     
       // Clamp and shape velocity a bit so the response feels musical
