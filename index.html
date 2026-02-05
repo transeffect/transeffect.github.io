@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.003
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.004
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -368,11 +368,10 @@
     }
 
     noteOff(note) {
+      note = Number(note);
+      if (!Number.isFinite(note)) return;
       if (!this.ctx) return;
-
-            // DEBUG
-      console.log("GET", note, typeof note, "keys sample:", [...this.active.keys()].slice(0,3));
-          // end DEBUG
+    
       const voice = this.active.get(note);
       if (!voice) return;
     
@@ -380,14 +379,10 @@
       const { osc, gain } = voice;
     
       const isPiano = (typeof playMode !== "undefined" && playMode === "piano");
+      const release = isPiano ? 0.10 : 0.18;
     
-      // Piano: damper release should be quick but audible.
-      // Organ: slightly longer release is fine.
-      const release = isPiano ? 0.10 : 0.18; // try 0.08–0.15 for piano taste
-    
-      // Start from the instantaneous current value on the AudioParam timeline.
-      // Using getValueAtTime helps when you have scheduled ramps.
-      const current = Math.max(gain.gain.getValueAtTime(now), 0.0001);
+      // Safe everywhere
+      const current = Math.max(gain.gain.value, 0.0001);
     
       gain.gain.cancelScheduledValues(now);
       gain.gain.setValueAtTime(current, now);
@@ -396,7 +391,6 @@
       osc.stop(now + release + 0.03);
       this.active.delete(note);
     }
-
 
     allOff() {
       for (const note of Array.from(this.active.keys())) {
