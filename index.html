@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.010
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.012
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -305,8 +305,6 @@
       damperGain.gain.setTargetAtTime(0.0001, now, 0.02);
   
       try { osc.stop(now + stopDelay); } catch {}
-      // cleanup when actually ended
-      osc.onended = () => this.active.delete(note);
     }
   
     noteOn(note, velocity = 0.8) {
@@ -357,9 +355,13 @@
       envGain.gain.linearRampToValueAtTime(peak, now + attack);
   
       if (playMode === "piano") {
-        // Natural decay while held (ring time depends slightly on velocity)
-        const ringTC = 0.6 + vCurve * 0.9; // ~0.6s .. ~1.5s
+        const ringTC = 0.6 + vCurve * 0.9;
         envGain.gain.setTargetAtTime(0.0001, now + attack, ringTC);
+      
+        // Auto-stop so voices don't linger forever (and so UI can clear)
+        // Tune 5–8 seconds depending on how long you want tails.
+        const autoStop = now + attack + 6.0;
+        try { osc.stop(autoStop); } catch {}
       } else {
         // Organ: steady sustain while held
         const sustainLevel = Math.max(0.01, peak * 0.65);
@@ -369,7 +371,10 @@
       osc.start(now);
   
       // Clean up map when oscillator actually ends
-      osc.onended = () => this.active.delete(note);
+      osc.onended = () => {
+        this.active.delete(note);
+        window.dispatchEvent(new CustomEvent("noteended", { detail: { note } }));
+      };
   
       this.active.set(note, { osc, envGain, damperGain });
     }
@@ -389,14 +394,14 @@
       // Damper behavior:
       // Piano should damp fairly quickly, organ a bit smoother
       const isPiano = (playMode === "piano");
-      const tc = isPiano ? 0.03 : 0.06; // time constant; smaller = faster damping
+      const tc = isPiano ? 0.06 : 0.08; // time constant; smaller = faster damping
   
       // Only touch damperGain. envGain continues its natural decay unaffected.
       damperGain.gain.cancelScheduledValues(now);
       damperGain.gain.setTargetAtTime(0.0001, now, tc);
   
       // Stop after it's essentially silent
-      try { osc.stop(now + (isPiano ? 0.35 : 0.25)); } catch {}
+      try { osc.stop(now + (isPiano ? 0.9 : 0.5)); } catch {}
       // Map cleanup happens in onended
     }
   
@@ -870,6 +875,16 @@
       el.classList.remove("active");
       el.classList.remove("sustained");
     }
+
+
+    window.addEventListener("noteended", (e) => {
+      const note = e.detail.note;
+      if (!pressedNotes.has(note)) {
+        sustainedNotes.delete(note);
+        const el = noteToEl.get(note);
+        if (el) el.classList.remove("sustained");
+      }
+    });
   });
 
   // Initial render
