@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.004
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.005
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -379,18 +379,27 @@
       const { osc, gain } = voice;
     
       const isPiano = (typeof playMode !== "undefined" && playMode === "piano");
-      const release = isPiano ? 0.10 : 0.18;
+      const release = isPiano ? 0.10 : 0.18; // adjust to taste
     
-      // Safe everywhere
-      const current = Math.max(gain.gain.value, 0.0001);
+      const g = gain.gain;
     
-      gain.gain.cancelScheduledValues(now);
-      gain.gain.setValueAtTime(current, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+      // Best path: freeze at the current automated value, then release smoothly
+      if (typeof g.cancelAndHoldAtTime === "function") {
+        g.cancelAndHoldAtTime(now);
+        // Exponential ramp to near-zero avoids clicks
+        g.exponentialRampToValueAtTime(0.0001, now + release);
+      } else {
+        // Fallback path: DON'T setValueAtTime(current) since we can't read current.
+        // Instead, gently steer it toward zero starting from the current computed value.
+        // timeConstant roughly controls how fast it decays.
+        const timeConstant = Math.max(0.01, release / 5);
+        g.setTargetAtTime(0.0001, now, timeConstant);
+      }
     
-      osc.stop(now + release + 0.03);
+      osc.stop(now + release + 0.05);
       this.active.delete(note);
     }
+
 
     allOff() {
       for (const note of Array.from(this.active.keys())) {
