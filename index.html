@@ -721,28 +721,35 @@
     btn.setAttribute("aria-pressed", String(audioEnabled));
     btn.textContent = audioEnabled ? "Audio: On" : "Audio: Off";
   
-    if (!audio.ctx) {
+    // Always update status immediately so first click reflects change
+    statusEl.textContent = audioEnabled ? "Audio: enabling..." : "Audio: muted";
+  
+    try {
       if (audioEnabled) {
+        // First enable: create + resume context if needed
         await audio.ensureStarted();
+        statusEl.textContent = "Audio: enabled";
+      } else {
+        // Disable: stop notes and suspend if context exists
+        audio.allOff();
+        if (audio.ctx) await audio.ctx.suspend();
+        statusEl.textContent = "Audio: muted";
       }
-      return;
+    } catch (err) {
+      // If enabling fails, revert state and UI
+      audioEnabled = false;
+      btn.setAttribute("aria-pressed", "false");
+      btn.textContent = "Audio: Off";
+      statusEl.textContent = "Audio: unavailable";
+      throw err;
     }
-  
-    if (audioEnabled) {
-      await audio.ctx.resume();
-    } else {
-      audio.allOff();
-      await audio.ctx.suspend();
-    }
-  
-    statusEl.textContent = audioEnabled ? "Audio: enabled" : "Audio: muted";
   }
 
   document.getElementById("btnAudio").addEventListener("click", async () => {
     try {
       await setAudioEnabled(!audioEnabled);
     } catch {
-      statusEl.textContent = "Audio: unavailable";
+      // status is already set in setAudioEnabled
     }
   });
 
