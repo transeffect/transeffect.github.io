@@ -212,7 +212,7 @@
       </div>
 
       <div class="controls">
-        <button id="btnArm">Enable Audio</button>
+        <button id="btnAudio" aria-pressed="false">Audio: Off</button>
         <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
         <button id="btnOctDown">Octave -</button>
         <button id="btnOctUp">Octave +</button>
@@ -291,38 +291,52 @@
     }
 
     noteOn(note, velocity = 0.8) {
-      if (!this.ctx || this.ctx.state !== "running") return;
+      if (!audioEnabled) return;
 
+      if (!this.ctx || this.ctx.state !== "running") return;
+    
       // If already active, ignore (prevents retrigger spam while dragging)
       if (this.active.has(note)) return;
-
+    
       const now = this.ctx.currentTime;
-
+    
+      // Clamp and shape velocity a bit so the response feels musical
+      const v = Math.max(0.01, Math.min(1, velocity));
+      const vCurve = Math.pow(v, 0.75); // boosts low velocities slightly
+    
+      // Velocity affects attack (soft = slower, hard = faster)
+      const attack = 0.005 + (1 - vCurve) * 0.035; // ~5ms to ~40ms
+    
+      // Velocity affects brightness (soft = darker, hard = brighter)
+      const cutoff = 900 + vCurve * 5200;          // ~900Hz to ~6100Hz
+      const q = 0.55 + vCurve * 0.35;              // slightly sharper when harder
+    
+      // Amplitude still matters, but keep it in a reasonable range
+      const peak = 0.08 + vCurve * 0.75;           // ~0.08 to ~0.83
+    
       // Slightly richer than a plain sine, still light weight.
       const osc = this.ctx.createOscillator();
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
-
+    
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(0.0001, now);
-
-      // Envelope: fast attack, gentle decay
-      const peak = Math.max(0.02, Math.min(1, velocity));
-      gain.gain.exponentialRampToValueAtTime(peak, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(peak * 0.55, now + 0.18);
-
-      // A touch of low-pass filtering for less buzz
+    
       const filter = this.ctx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(3500, now);
-      filter.Q.setValueAtTime(0.6, now);
-
+      filter.frequency.setValueAtTime(cutoff, now);
+      filter.Q.setValueAtTime(q, now);
+    
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.master);
-
+    
+      // Envelope: velocity-shaped attack, then gentle decay
+      gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+      gain.gain.exponentialRampToValueAtTime(peak * 0.55, now + attack + 0.18);
+    
       osc.start(now);
-
+    
       this.active.set(note, { osc, gain });
     }
 
@@ -694,12 +708,38 @@
   // ---------------------------
   // UI wiring
   // ---------------------------
-  document.getElementById("btnArm").addEventListener("click", async () => {
+
+  let audioEnabled = false;
+  
+  async function setAudioEnabled(next) {
+    audioEnabled = !!next;
+  
+    const btn = document.getElementById("btnAudio");
+    btn.setAttribute("aria-pressed", String(audioEnabled));
+    btn.textContent = audioEnabled ? "Audio: On" : "Audio: Off";
+  
+    if (!audio.ctx) {
+      if (audioEnabled) {
+        await audio.ensureStarted();
+      }
+      return;
+    }
+  
+    if (audioEnabled) {
+      await audio.ctx.resume();
+    } else {
+      audio.allOff();
+      await audio.ctx.suspend();
+    }
+  
+    statusEl.textContent = audioEnabled ? "Audio: enabled" : "Audio: muted";
+  }
+
+  document.getElementById("btnAudio").addEventListener("click", async () => {
     try {
-      await audio.ensureStarted();
-      statusEl.textContent = "Audio: enabled";
+      await setAudioEnabled(!audioEnabled);
     } catch {
-      statusEl.textContent = "Audio: failed to enable";
+      statusEl.textContent = "Audio: unavailable";
     }
   });
 
@@ -736,8 +776,13 @@
     pointerToNote.clear();
     keyboardHeld.clear();
     sustainedNotes.clear();
+    setAudioEnabled(false);
     setSustain(false);
-    for (const el of noteToEl.values()) el.classList.remove("active");
+  
+    for (const el of noteToEl.values()) {
+      el.classList.remove("active");
+      el.classList.remove("sustained");
+    }
   });
 
   // Initial render
