@@ -211,7 +211,7 @@
     <header>
       <div class="title">
         <strong>Piano MVP</strong>
-        <span>Phase 1.5: On-screen keys + audio + highlighting. Mode: Piano (decay) / Organ (hold). Toggle with button (or O).</span>
+        <span>Phase 1.5: On-screen keys + audio + highlighting.</span>
       </div>
 
       <div class="controls">
@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first.
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.001
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -377,8 +377,8 @@
       // Organ: slightly longer is pleasant, but still quick
       const release =
         (typeof playMode !== "undefined" && playMode === "piano")
-          ? 0.06   // 60ms: crisp but not abrupt
-          : 0.10;  // 100ms: smooth
+          ? 0.016   // 60ms: crisp but not abrupt
+          : 0.20;  // 100ms: smooth
     
       // Prevent clicks: start from the current gain, then ramp down
       const current = Math.max(gain.gain.value, 0.0001);
