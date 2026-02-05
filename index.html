@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.005
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.006
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -379,26 +379,30 @@
       const { osc, gain } = voice;
     
       const isPiano = (typeof playMode !== "undefined" && playMode === "piano");
-      const release = isPiano ? 0.10 : 0.18; // adjust to taste
+      const release = isPiano ? 0.10 : 0.18;
     
       const g = gain.gain;
     
-      // Best path: freeze at the current automated value, then release smoothly
       if (typeof g.cancelAndHoldAtTime === "function") {
+        // Best: hold current computed value, then ramp down
         g.cancelAndHoldAtTime(now);
-        // Exponential ramp to near-zero avoids clicks
+        g.exponentialRampToValueAtTime(0.0001, now + release);
+      } else if (typeof g.getValueAtTime === "function") {
+        // Good: read current value then ramp down
+        const current = Math.max(g.getValueAtTime(now), 0.0001);
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(current, now);
         g.exponentialRampToValueAtTime(0.0001, now + release);
       } else {
-        // Fallback path: DON'T setValueAtTime(current) since we can't read current.
-        // Instead, gently steer it toward zero starting from the current computed value.
-        // timeConstant roughly controls how fast it decays.
-        const timeConstant = Math.max(0.01, release / 5);
-        g.setTargetAtTime(0.0001, now, timeConstant);
+        // Safe fallback: decay smoothly without needing to read the current value
+        g.cancelScheduledValues(now);
+        g.setTargetAtTime(0.0001, now, Math.max(0.01, release / 5));
       }
     
-      osc.stop(now + release + 0.05);
+      osc.stop(now + release + 0.06);
       this.active.delete(note);
     }
+
 
 
     allOff() {
