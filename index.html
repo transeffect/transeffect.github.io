@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Piano MVP – Phase 1</title>
+  <meta http-equiv='cache-control' content='no-cache'> 
+  <meta http-equiv='expires' content='0'> 
+  <meta http-equiv='pragma' content='no-cache'>
+  <title>Piano MVP – Phase 1.5</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -172,6 +175,15 @@
       box-shadow: inset 0 -10px 14px rgba(160,255,218,.08), 0 10px 20px rgba(0,0,0,.45);
     }
 
+    .key.white.sustained {
+      background: linear-gradient(#dcfff2, #c8ffe8);
+      border-color: color-mix(in oklab, var(--active2) 55%, var(--whiteKeyBorder));
+    }
+    .key.black.sustained {
+      background: linear-gradient(#1f3a3a, #0b1516);
+      border-color: rgba(160,255,218,.45);
+    }
+
     .footerRow {
       margin-top: 12px;
       display: flex;
@@ -199,11 +211,12 @@
     <header>
       <div class="title">
         <strong>Piano MVP</strong>
-        <span>Phase 1: On-screen keys + audio + highlighting</span>
+        <span>Phase 1.5: On-screen keys + audio + highlighting</span>
       </div>
 
       <div class="controls">
-        <button id="btnArm">Enable Audio</button>
+        <button id="btnAudio" aria-pressed="false">Audio: Off</button>
+        <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
         <button id="btnOctDown">Octave -</button>
         <button id="btnOctUp">Octave +</button>
 
@@ -281,38 +294,52 @@
     }
 
     noteOn(note, velocity = 0.8) {
-      if (!this.ctx || this.ctx.state !== "running") return;
+      if (!audioEnabled) return;
 
+      if (!this.ctx || this.ctx.state !== "running") return;
+    
       // If already active, ignore (prevents retrigger spam while dragging)
       if (this.active.has(note)) return;
-
+    
       const now = this.ctx.currentTime;
-
+    
+      // Clamp and shape velocity a bit so the response feels musical
+      const v = Math.max(0.01, Math.min(1, velocity));
+      const vCurve = Math.pow(v, 0.75); // boosts low velocities slightly
+    
+      // Velocity affects attack (soft = slower, hard = faster)
+      const attack = 0.005 + (1 - vCurve) * 0.035; // ~5ms to ~40ms
+    
+      // Velocity affects brightness (soft = darker, hard = brighter)
+      const cutoff = 900 + vCurve * 5200;          // ~900Hz to ~6100Hz
+      const q = 0.55 + vCurve * 0.35;              // slightly sharper when harder
+    
+      // Amplitude still matters, but keep it in a reasonable range
+      const peak = 0.08 + vCurve * 0.75;           // ~0.08 to ~0.83
+    
       // Slightly richer than a plain sine, still light weight.
       const osc = this.ctx.createOscillator();
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
-
+    
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(0.0001, now);
-
-      // Envelope: fast attack, gentle decay
-      const peak = Math.max(0.02, Math.min(1, velocity));
-      gain.gain.exponentialRampToValueAtTime(peak, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(peak * 0.55, now + 0.18);
-
-      // A touch of low-pass filtering for less buzz
+    
       const filter = this.ctx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(3500, now);
-      filter.Q.setValueAtTime(0.6, now);
-
+      filter.frequency.setValueAtTime(cutoff, now);
+      filter.Q.setValueAtTime(q, now);
+    
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.master);
-
+    
+      // Envelope: velocity-shaped attack, then gentle decay
+      gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+      gain.gain.exponentialRampToValueAtTime(peak * 0.55, now + attack + 0.18);
+    
       osc.start(now);
-
+    
       this.active.set(note, { osc, gain });
     }
 
@@ -358,6 +385,10 @@
   // State of pressed notes by source pointer
   const pressedNotes = new Set(); // notes currently down (regardless of source)
   const noteToEl = new Map();     // note -> key element
+
+  // State of sustained notes by source pointer
+  const sustainedNotes = new Set(); // notes being held by sustain pedal
+  let sustainOn = false;
 
   // Pointer tracking for dragging across keys
   const pointerToNote = new Map(); // pointerId -> note
@@ -412,6 +443,13 @@
     // Don't hijack typing or slider interactions
     if (isTypingTarget(e.target)) return;
 
+    // Sustain toggle via Space
+    if (e.code === "Space") {
+      e.preventDefault();
+      if (!e.repeat) setSustain(!sustainOn);
+      return;
+    }
+
     // Octave shift via Z / X
     if (e.code === "KeyZ") {
       e.preventDefault();
@@ -465,19 +503,65 @@
   }, { passive: false });
 
   function noteOn(evt) {
-    const { note, velocity, source, time } = evt; // source/time reserved for later
+    const { note, velocity } = evt;
+  
+    // If a note was being sustained and is pressed again, it's no longer "pedal-only"
+    sustainedNotes.delete(note);
+  
     pressedNotes.add(note);
     const el = noteToEl.get(note);
-    if (el) el.classList.add("active");
+    if (el) {
+      el.classList.add("active");
+      el.classList.remove("sustained");
+    }
     audio.noteOn(note, velocity);
   }
-
+  
   function noteOff(evt) {
     const { note } = evt;
+  
+    // Key released physically
     pressedNotes.delete(note);
+  
     const el = noteToEl.get(note);
-    if (el) el.classList.remove("active");
+  
+    if (sustainOn) {
+      // Keep sounding until sustain is turned off
+      sustainedNotes.add(note);
+      if (el) {
+        el.classList.remove("active");
+        el.classList.add("sustained");
+      }
+      return;
+    }
+  
+    // No sustain: stop immediately
+    sustainedNotes.delete(note);
+    if (el) {
+      el.classList.remove("active");
+      el.classList.remove("sustained");
+    }
     audio.noteOff(note);
+  }
+
+  function setSustain(next) {
+  sustainOn = !!next;
+
+  const btn = document.getElementById("btnSustain");
+  btn.setAttribute("aria-pressed", String(sustainOn));
+  btn.textContent = sustainOn ? "Sustain: On" : "Sustain: Off";
+
+    // When sustain turns OFF, release any notes that are no longer physically held
+    if (!sustainOn) {
+      for (const note of Array.from(sustainedNotes)) {
+        if (!pressedNotes.has(note)) {
+          const el = noteToEl.get(note);
+          if (el) el.classList.remove("sustained");
+          audio.noteOff(note);
+          sustainedNotes.delete(note);
+        }
+      }
+    }
   }
 
   function buildPiano() {
@@ -627,13 +711,43 @@
   // ---------------------------
   // UI wiring
   // ---------------------------
-  document.getElementById("btnArm").addEventListener("click", async () => {
-    try {
-      await audio.ensureStarted();
-      statusEl.textContent = "Audio: enabled";
-    } catch {
-      statusEl.textContent = "Audio: failed to enable";
+
+  let audioEnabled = false;
+  
+  async function setAudioEnabled(next) {
+    audioEnabled = !!next;
+  
+    const btn = document.getElementById("btnAudio");
+    btn.setAttribute("aria-pressed", String(audioEnabled));
+    btn.textContent = audioEnabled ? "Audio: On" : "Audio: Off";
+  
+    if (!audio.ctx) {
+      if (audioEnabled) {
+        await audio.ensureStarted();
+      }
+      return;
     }
+  
+    if (audioEnabled) {
+      await audio.ctx.resume();
+    } else {
+      audio.allOff();
+      await audio.ctx.suspend();
+    }
+  
+    statusEl.textContent = audioEnabled ? "Audio: enabled" : "Audio: muted";
+  }
+
+  document.getElementById("btnAudio").addEventListener("click", async () => {
+    try {
+      await setAudioEnabled(!audioEnabled);
+    } catch {
+      statusEl.textContent = "Audio: unavailable";
+    }
+  });
+
+  document.getElementById("btnSustain").addEventListener("click", () => {
+    setSustain(!sustainOn);
   });
 
   volEl.addEventListener("input", () => {
@@ -664,7 +778,14 @@
     pressedNotes.clear();
     pointerToNote.clear();
     keyboardHeld.clear();
-    for (const el of noteToEl.values()) el.classList.remove("active");
+    sustainedNotes.clear();
+    setAudioEnabled(false);
+    setSustain(false);
+  
+    for (const el of noteToEl.values()) {
+      el.classList.remove("active");
+      el.classList.remove("sustained");
+    }
   });
 
   // Initial render
