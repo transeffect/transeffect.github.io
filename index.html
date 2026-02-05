@@ -211,12 +211,13 @@
     <header>
       <div class="title">
         <strong>Piano MVP</strong>
-        <span>Phase 1.5: On-screen keys + audio + highlighting</span>
+        <span>Phase 1.5: On-screen keys + audio + highlighting. Mode: Piano (decay) / Organ (hold). Toggle with button (or O).</span>
       </div>
 
       <div class="controls">
         <button id="btnAudio" aria-pressed="false">Audio: Off</button>
         <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
+        <button id="btnMode" aria-pressed="false">Mode: Piano</button>
         <button id="btnOctDown">Octave -</button>
         <button id="btnOctUp">Octave +</button>
 
@@ -334,9 +335,25 @@
       filter.connect(gain);
       gain.connect(this.master);
     
-      // Envelope: velocity-shaped attack, then gentle decay
+      // Envelope:
+      // Piano mode: no steady sustain plateau; it naturally decays even while held.
+      // Organ mode: holds near a sustain level until noteOff.
       gain.gain.exponentialRampToValueAtTime(peak, now + attack);
-      gain.gain.exponentialRampToValueAtTime(peak * 0.55, now + attack + 0.18);
+      
+      if (playMode === "piano") {
+        // Quick drop after the transient, then a long tail
+        const dropLevel = Math.max(0.0008, peak * 0.22);
+        const tailLevel = Math.max(0.0004, peak * 0.06);
+      
+        gain.gain.exponentialRampToValueAtTime(dropLevel, now + attack + 0.20);
+        gain.gain.exponentialRampToValueAtTime(tailLevel, now + attack + 1.60);
+        // keep decaying slowly so it never "hangs"
+        gain.gain.exponentialRampToValueAtTime(0.0002, now + attack + 4.50);
+      } else {
+        // Organ-ish sustain plateau
+        const sustainLevel = Math.max(0.01, peak * 0.65);
+        gain.gain.exponentialRampToValueAtTime(sustainLevel, now + attack + 0.08);
+      }
     
       osc.start(now);
     
@@ -452,6 +469,12 @@
     // Don't hijack typing or slider interactions
     if (isTypingTarget(e.target)) return;
 
+    if (e.code === "KeyO") {
+      e.preventDefault();
+      if (!e.repeat) setPlayMode(playMode === "piano" ? "organ" : "piano");
+      return;
+    }
+    
     // Sustain toggle via Space
     if (e.code === "Space") {
       e.preventDefault();
@@ -770,6 +793,24 @@
   document.getElementById("btnSustain").addEventListener("click", () => {
     setSustain(!sustainOn);
   });
+
+  let playMode = "piano"; // "piano" | "organ"
+  
+  function setPlayMode(next) {
+    playMode = (next === "organ") ? "organ" : "piano";
+  
+    const btn = document.getElementById("btnMode");
+    const isOrgan = playMode === "organ";
+    btn.setAttribute("aria-pressed", String(isOrgan));
+    btn.textContent = isOrgan ? "Mode: Organ" : "Mode: Piano";
+  }
+  
+  document.getElementById("btnMode").addEventListener("click", () => {
+    setPlayMode(playMode === "piano" ? "organ" : "piano");
+  });
+  
+  // Initialize
+  setPlayMode("piano");
 
   volEl.addEventListener("input", () => {
     audio.setVolume(Number(volEl.value));
