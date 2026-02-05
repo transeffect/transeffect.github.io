@@ -172,6 +172,15 @@
       box-shadow: inset 0 -10px 14px rgba(160,255,218,.08), 0 10px 20px rgba(0,0,0,.45);
     }
 
+    .key.white.sustained {
+      background: linear-gradient(#dcfff2, #c8ffe8);
+      border-color: color-mix(in oklab, var(--active2) 55%, var(--whiteKeyBorder));
+    }
+    .key.black.sustained {
+      background: linear-gradient(#1f3a3a, #0b1516);
+      border-color: rgba(160,255,218,.45);
+    }
+
     .footerRow {
       margin-top: 12px;
       display: flex;
@@ -204,6 +213,7 @@
 
       <div class="controls">
         <button id="btnArm">Enable Audio</button>
+        <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
         <button id="btnOctDown">Octave -</button>
         <button id="btnOctUp">Octave +</button>
 
@@ -359,6 +369,10 @@
   const pressedNotes = new Set(); // notes currently down (regardless of source)
   const noteToEl = new Map();     // note -> key element
 
+  // State of sustained notes by source pointer
+  const sustainedNotes = new Set(); // notes being held by sustain pedal
+  let sustainOn = false;
+
   // Pointer tracking for dragging across keys
   const pointerToNote = new Map(); // pointerId -> note
 
@@ -411,6 +425,13 @@
   window.addEventListener("keydown", (e) => {
     // Don't hijack typing or slider interactions
     if (isTypingTarget(e.target)) return;
+
+    // Sustain toggle via Space
+    if (e.code === "Space") {
+      e.preventDefault();
+      if (!e.repeat) setSustain(!sustainOn);
+      return;
+    }
 
     // Octave shift via Z / X
     if (e.code === "KeyZ") {
@@ -465,19 +486,65 @@
   }, { passive: false });
 
   function noteOn(evt) {
-    const { note, velocity, source, time } = evt; // source/time reserved for later
+    const { note, velocity } = evt;
+  
+    // If a note was being sustained and is pressed again, it's no longer "pedal-only"
+    sustainedNotes.delete(note);
+  
     pressedNotes.add(note);
     const el = noteToEl.get(note);
-    if (el) el.classList.add("active");
+    if (el) {
+      el.classList.add("active");
+      el.classList.remove("sustained");
+    }
     audio.noteOn(note, velocity);
   }
-
+  
   function noteOff(evt) {
     const { note } = evt;
+  
+    // Key released physically
     pressedNotes.delete(note);
+  
     const el = noteToEl.get(note);
-    if (el) el.classList.remove("active");
+  
+    if (sustainOn) {
+      // Keep sounding until sustain is turned off
+      sustainedNotes.add(note);
+      if (el) {
+        el.classList.remove("active");
+        el.classList.add("sustained");
+      }
+      return;
+    }
+  
+    // No sustain: stop immediately
+    sustainedNotes.delete(note);
+    if (el) {
+      el.classList.remove("active");
+      el.classList.remove("sustained");
+    }
     audio.noteOff(note);
+  }
+
+  function setSustain(next) {
+  sustainOn = !!next;
+
+  const btn = document.getElementById("btnSustain");
+  btn.setAttribute("aria-pressed", String(sustainOn));
+  btn.textContent = sustainOn ? "Sustain: On" : "Sustain: Off";
+
+    // When sustain turns OFF, release any notes that are no longer physically held
+    if (!sustainOn) {
+      for (const note of Array.from(sustainedNotes)) {
+        if (!pressedNotes.has(note)) {
+          const el = noteToEl.get(note);
+          if (el) el.classList.remove("sustained");
+          audio.noteOff(note);
+          sustainedNotes.delete(note);
+        }
+      }
+    }
   }
 
   function buildPiano() {
@@ -636,6 +703,10 @@
     }
   });
 
+  document.getElementById("btnSustain").addEventListener("click", () => {
+    setSustain(!sustainOn);
+  });
+
   volEl.addEventListener("input", () => {
     audio.setVolume(Number(volEl.value));
   });
@@ -664,6 +735,8 @@
     pressedNotes.clear();
     pointerToNote.clear();
     keyboardHeld.clear();
+    sustainedNotes.clear();
+    setSustain(false);
     for (const el of noteToEl.values()) el.classList.remove("active");
   });
 
