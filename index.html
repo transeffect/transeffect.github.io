@@ -361,13 +361,18 @@
       }
     
       osc.start(now);
-    
+      // DEBUG
+      console.log("SET", note, typeof note);
+      // End debug
       this.active.set(note, { osc, gain });
     }
 
     noteOff(note) {
       if (!this.ctx) return;
-    
+
+            // DEBUG
+      console.log("GET", note, typeof note, "keys sample:", [...this.active.keys()].slice(0,3));
+          // end DEBUG
       const voice = this.active.get(note);
       if (!voice) return;
     
