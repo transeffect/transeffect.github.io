@@ -208,7 +208,7 @@
     <header>
       <div class="title">
         <strong>Piano MVP</strong>
-        <span>Phase 1: On-screen keys + audio + highlighting</span>
+        <span>Phase 1.5: On-screen keys + audio + highlighting</span>
       </div>
 
       <div class="controls">
