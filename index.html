@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.006
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.007
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -379,31 +379,24 @@
       const { osc, gain } = voice;
     
       const isPiano = (typeof playMode !== "undefined" && playMode === "piano");
-      const release = isPiano ? 0.10 : 0.18;
+      const release = isPiano ? 0.12 : 0.18; // tweak to taste
     
       const g = gain.gain;
     
       if (typeof g.cancelAndHoldAtTime === "function") {
-        // Best: hold current computed value, then ramp down
+        // Best path: hold computed value, then ramp down
         g.cancelAndHoldAtTime(now);
         g.exponentialRampToValueAtTime(0.0001, now + release);
-      } else if (typeof g.getValueAtTime === "function") {
-        // Good: read current value then ramp down
-        const current = Math.max(g.getValueAtTime(now), 0.0001);
-        g.cancelScheduledValues(now);
-        g.setValueAtTime(current, now);
-        g.exponentialRampToValueAtTime(0.0001, now + release);
       } else {
-        // Safe fallback: decay smoothly without needing to read the current value
+        // Firefox-safe path: do not try to "read" the automated value
+        // Steer toward silence smoothly from wherever it currently is.
         g.cancelScheduledValues(now);
-        g.setTargetAtTime(0.0001, now, Math.max(0.01, release / 5));
+        g.setTargetAtTime(0.0001, now, Math.max(0.015, release / 5));
       }
     
-      osc.stop(now + release + 0.06);
+      osc.stop(now + release + 0.08);
       this.active.delete(note);
     }
-
-
 
     allOff() {
       for (const note of Array.from(this.active.keys())) {
