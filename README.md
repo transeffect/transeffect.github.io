@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Piano MVP – Phase 1</title>
+  <title>Piano MVP – Phase 1.5</title>
   <style>
     :root {
       --bg: #0f1115;
