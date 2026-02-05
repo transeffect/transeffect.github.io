@@ -334,6 +334,10 @@
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.master);
+
+      // Ensure no stale scheduling and avoid clicks
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(0.0001, now);
     
       // Envelope:
       // Piano mode: no steady sustain plateau; it naturally decays even while held.
@@ -344,7 +348,6 @@
         // Quick drop after the transient, then a long tail
         const dropLevel = Math.max(0.0008, peak * 0.22);
         const tailLevel = Math.max(0.0004, peak * 0.06);
-      
         gain.gain.exponentialRampToValueAtTime(dropLevel, now + attack + 0.20);
         gain.gain.exponentialRampToValueAtTime(tailLevel, now + attack + 1.60);
         // keep decaying slowly so it never "hangs"
