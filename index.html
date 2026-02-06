@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.012
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.013
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -302,8 +302,7 @@
   
       // click-safe quick ramp down
       damperGain.gain.cancelScheduledValues(now);
-      damperGain.gain.setTargetAtTime(0.0001, now, 0.02);
-  
+      damperGain.gain.setTargetAtTime(0.0001, now, 0.03);
       try { osc.stop(now + stopDelay); } catch {}
     }
   
@@ -315,7 +314,7 @@
       if (!Number.isFinite(note)) return;
   
       // Allow re-strike: if note is still ringing, damp it quickly then retrigger
-      if (this.active.has(note)) this._stopVoice(note, 0.05);
+      if (this.active.has(note)) this._stopVoice(note, 0.18);
   
       const now = this.ctx.currentTime;
   
@@ -394,14 +393,14 @@
       // Damper behavior:
       // Piano should damp fairly quickly, organ a bit smoother
       const isPiano = (playMode === "piano");
-      const tc = isPiano ? 0.06 : 0.08; // time constant; smaller = faster damping
+      const tc = isPiano ? 0.05 : 0.08; // time constant; smaller = faster damping
   
       // Only touch damperGain. envGain continues its natural decay unaffected.
       damperGain.gain.cancelScheduledValues(now);
       damperGain.gain.setTargetAtTime(0.0001, now, tc);
   
       // Stop after it's essentially silent
-      try { osc.stop(now + (isPiano ? 0.9 : 0.5)); } catch {}
+      try { osc.stop(now + (isPiano ? 0.65 : 0.45)); } catch {}
       // Map cleanup happens in onended
     }
   
