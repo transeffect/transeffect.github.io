@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.013
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.014
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -314,7 +314,7 @@
       if (!Number.isFinite(note)) return;
   
       // Allow re-strike: if note is still ringing, damp it quickly then retrigger
-      if (this.active.has(note)) this._stopVoice(note, 0.18);
+      if (this.active.has(note)) this._stopVoice(note, 0.12);
   
       const now = this.ctx.currentTime;
   
@@ -369,13 +369,18 @@
   
       osc.start(now);
   
-      // Clean up map when oscillator actually ends
+      const voiceObj = { osc, envGain, damperGain };
+      
+      // Clean up only if we're still the active voice for this note
       osc.onended = () => {
-        this.active.delete(note);
-        window.dispatchEvent(new CustomEvent("noteended", { detail: { note } }));
+        if (this.active.get(note) === voiceObj) {
+          this.active.delete(note);
+          window.dispatchEvent(new CustomEvent("noteended", { detail: { note } }));
+        }
       };
-  
-      this.active.set(note, { osc, envGain, damperGain });
+      
+      this.active.set(note, voiceObj);
+
     }
   
     noteOff(note) {
