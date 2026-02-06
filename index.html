@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.014
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.015
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -868,27 +868,28 @@
   // Safety: when tab loses focus, stop sound
   window.addEventListener("blur", () => {
     audio.allOff();
+    setSustain(false);
     pressedNotes.clear();
     pointerToNote.clear();
     keyboardHeld.clear();
     sustainedNotes.clear();
     setAudioEnabled(false);
-    setSustain(false);
   
     for (const el of noteToEl.values()) {
       el.classList.remove("active");
       el.classList.remove("sustained");
     }
-
-
-    window.addEventListener("noteended", (e) => {
-      const note = e.detail.note;
-      if (!pressedNotes.has(note)) {
-        sustainedNotes.delete(note);
-        const el = noteToEl.get(note);
-        if (el) el.classList.remove("sustained");
-      }
-    });
+  });
+  window.addEventListener("noteended", (e) => {
+    const note = Number(e.detail?.note);
+    if (!Number.isFinite(note)) return;
+  
+    // If the user isn't physically holding it, clear sustained state + UI
+    if (!pressedNotes.has(note)) {
+      sustainedNotes.delete(note);
+      const el = noteToEl.get(note);
+      if (el) el.classList.remove("sustained");
+    }
   });
 
   // Initial render
