@@ -254,6 +254,7 @@
   // ---------------------------
   const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const isBlack = (midiNote) => NOTE_NAMES[midiNote % 12].includes("#");
+  let oscCounter = 0;
 
   function midiToName(n) {
     const name = NOTE_NAMES[n % 12];
