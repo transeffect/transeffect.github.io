@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.018
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.019
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -303,6 +303,9 @@
       // click-safe quick ramp down
       damperGain.gain.cancelScheduledValues(now);
       damperGain.gain.setTargetAtTime(0.0001, now, 0.03);
+      //debug
+      console.log(`Osc ${osc._id} stop() called`);
+      //end debug
       try { osc.stop(now + stopDelay); } catch {}
     }
   
@@ -328,6 +331,10 @@
       const peak = 0.08 + vCurve * 0.75;
   
       const osc = this.ctx.createOscillator();
+      //debug
+      osc._id = ++oscCounter;
+      console.log(`Osc ${osc._id} START (note ${note})`);
+      // end debug
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
   
@@ -359,7 +366,10 @@
       
         // Auto-stop so voices don't linger forever (and so UI can clear)
         // Tune 5–8 seconds depending on how long you want tails.
-        const autoStop = now + attack + 6.0;
+        const autoStop = now + attack + 4.0;
+        //debug
+        console.log(`Osc ${osc._id} stop() called`);
+        //end debug
         try { osc.stop(autoStop); } catch {}
       } else {
         // Organ: steady sustain while held
@@ -373,6 +383,9 @@
       
       // Clean up only if we're still the active voice for this note
       osc.onended = () => {
+        //debug
+        console.log(`Osc ${osc._id} STOP (note ${note})`);
+        //end debug
         if (this.active.get(note) === voiceObj) {
           this.active.delete(note);
           window.dispatchEvent(new CustomEvent("noteended", { detail: { note } }));
@@ -405,6 +418,9 @@
       damperGain.gain.setTargetAtTime(0.0001, now, tc);
   
       // Stop after it's essentially silent
+      //debug
+      console.log(`Osc ${osc._id} stop() called`);
+      //end debug
       try { osc.stop(now + (isPiano ? 0.65 : 0.45)); } catch {}
       // Map cleanup happens in onended
     }
