@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.017
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.018
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -881,6 +881,7 @@
     }
   });
   window.addEventListener("noteended", (e) => {
+    console.log("noteended fired:", e.detail);
     const note = Number(e.detail?.note);
     if (!Number.isFinite(note)) return;
   
