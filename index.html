@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.019
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.020
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -304,10 +304,11 @@
       // click-safe quick ramp down
       damperGain.gain.cancelScheduledValues(now);
       damperGain.gain.setTargetAtTime(0.0001, now, 0.03);
+      const stopAt = now + stopDelay;
       //debug
-      console.log(`Osc ${osc._id} stop() called`);
+      console.log(`Osc ${osc._id} stop() requested by _stopVoice at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
       //end debug
-      try { osc.stop(now + stopDelay); } catch {}
+      try { osc.stop(stopAt); } catch {}
     }
   
     noteOn(note, velocity = 0.8) {
@@ -334,7 +335,7 @@
       const osc = this.ctx.createOscillator();
       //debug
       osc._id = ++oscCounter;
-      console.log(`Osc ${osc._id} START (note ${note})`);
+      console.log(`Osc ${osc._id} START (note ${note}) at now (${now.toFixed(3)})`);
       // end debug
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
@@ -369,7 +370,7 @@
         // Tune 5–8 seconds depending on how long you want tails.
         const autoStop = now + attack + 4.0;
         //debug
-        console.log(`Osc ${osc._id} stop() called`);
+        console.log(`Osc ${osc._id} autoStop scheduled at t=${autoStop.toFixed(3)} (now=${now.toFixed(3)})`);
         //end debug
         try { osc.stop(autoStop); } catch {}
       } else {
@@ -385,7 +386,7 @@
       // Clean up only if we're still the active voice for this note
       osc.onended = () => {
         //debug
-        console.log(`Osc ${osc._id} STOP (note ${note})`);
+        console.log(`Osc ${osc._id} ENDED at ctx.t=${this.ctx.currentTime.toFixed(3)}`);
         //end debug
         if (this.active.get(note) === voiceObj) {
           this.active.delete(note);
@@ -419,10 +420,11 @@
       damperGain.gain.setTargetAtTime(0.0001, now, tc);
   
       // Stop after it's essentially silent
+      const stopAt = now + (isPiano ? 0.65 : 0.45);
       //debug
-      console.log(`Osc ${osc._id} stop() called`);
+      console.log(`Osc ${osc._id} noteOff stop scheduled at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
       //end debug
-      try { osc.stop(now + (isPiano ? 0.65 : 0.45)); } catch {}
+      try { osc.stop(stopAt); } catch {}
       // Map cleanup happens in onended
     }
   
