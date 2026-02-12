@@ -329,6 +329,16 @@
       // Velocity shaping
       const v = Math.max(0.01, Math.min(1, velocity));
       const vCurve = Math.pow(v, 0.75);
+
+      const span = Math.max(1, VISIBLE_END - VISIBLE_START);
+      let pos = (note - VISIBLE_START) / span;     // 0..1-ish
+      pos = Math.max(0, Math.min(1, pos));         // clamp
+      let pan = (pos * 2 - 1) * 0.55;              // -0.55..+0.55
+
+      // Softer notes feel narrower (optional but nice)
+      pan *= (0.65 + 0.35 * vCurve);
+      
+      panner.pan.setValueAtTime(pan, now);
   
       const attack = 0.005 + (1 - vCurve) * 0.035;
       const cutoff = 900 + vCurve * 5200;
@@ -342,6 +352,12 @@
       // end debug
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
+
+      const detuneMax = 5; // cents (try 4–7)
+      const detune = (Math.random() * 2 - 1) * detuneMax;
+      
+      // Optional: softer notes detune a bit less
+      osc.detune.setValueAtTime(detune * (0.6 + 0.4 * vCurve), now);
   
       const filter = this.ctx.createBiquadFilter();
       filter.type = "lowpass";
@@ -354,11 +370,15 @@
   
       const damperGain = this.ctx.createGain();
       damperGain.gain.setValueAtTime(1.0, now); // stays at 1 until key-up (or sustain off)
+
+      const panner = this.ctx.createStereoPanner();
+
   
       osc.connect(filter);
       filter.connect(envGain);
       envGain.connect(damperGain);
-      damperGain.connect(this.master);
+      damperGain.connect(panner);
+      panner.connect(this.master);
   
       // Envelope on envGain only (noteOff will NOT touch envGain)
       envGain.gain.cancelScheduledValues(now);
@@ -451,6 +471,9 @@
   const BASE_START = 60; // C4
   const OCTAVES = 2;
   let octaveOffset = 0;
+
+  let VISIBLE_START = BASE_START;  // will be overwritten by buildPiano()
+  let VISIBLE_END = BASE_START + OCTAVES * 12 - 1;
 
   // State of pressed notes by source pointer
   const pressedNotes = new Set(); // notes currently down (regardless of source)
@@ -678,6 +701,9 @@
     const start = BASE_START + octaveOffset * 12;
     const end = start + OCTAVES * 12 - 1; // inclusive
 
+    VISIBLE_START = start;
+    VISIBLE_END = end;
+
     const whiteLayer = document.createElement("div");
     whiteLayer.className = "whiteKeys";
 
@@ -744,6 +770,8 @@
 
     pianoEl.appendChild(whiteLayer);
     pianoEl.appendChild(blackLayer);
+
+    console.log("Visible range:", VISIBLE_START, VISIBLE_END);
 
     // Re-apply active classes if octave shifting while holding notes (rare, but consistent)
     for (const note of pressedNotes) {
