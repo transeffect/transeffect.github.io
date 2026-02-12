@@ -370,7 +370,7 @@
       damperGain.gain.setValueAtTime(1.0, now); // stays at 1 until key-up (or sustain off)
 
       const panner = this.ctx.createStereoPanner();
-
+      panner.pan.setValueAtTime(pan, now);
   
       osc.connect(filter);
       filter.connect(envGain);
@@ -382,8 +382,6 @@
       envGain.gain.cancelScheduledValues(now);
       envGain.gain.setValueAtTime(0.0, now);
       envGain.gain.linearRampToValueAtTime(peak, now + attack);
-
-      panner.pan.setValueAtTime(pan, now);
   
       if (playMode === "piano") {
         const ringTC = 0.6 + vCurve * 0.9;
@@ -404,7 +402,7 @@
   
       osc.start(now);
   
-      const voiceObj = { osc, envGain, damperGain };
+      const voiceObj = { osc, envGain, damperGain, panner };
       
       // Clean up only if we're still the active voice for this note
       osc.onended = () => {
