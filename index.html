@@ -240,7 +240,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.020
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.021
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -337,8 +337,6 @@
 
       // Softer notes feel narrower (optional but nice)
       pan *= (0.65 + 0.35 * vCurve);
-      
-      panner.pan.setValueAtTime(pan, now);
   
       const attack = 0.005 + (1 - vCurve) * 0.035;
       const cutoff = 900 + vCurve * 5200;
@@ -384,6 +382,8 @@
       envGain.gain.cancelScheduledValues(now);
       envGain.gain.setValueAtTime(0.0, now);
       envGain.gain.linearRampToValueAtTime(peak, now + attack);
+
+      panner.pan.setValueAtTime(pan, now);
   
       if (playMode === "piano") {
         const ringTC = 0.6 + vCurve * 0.9;
