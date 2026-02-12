@@ -249,6 +249,9 @@
 
 <script>
 (() => {
+  const DEBUG = false;
+  const dlog = (...args) => { if (DEBUG) console.log(...args); };
+
   // ---------------------------
   // Constants / helpers
   // ---------------------------
@@ -306,7 +309,7 @@
       damperGain.gain.setTargetAtTime(0.0001, now, 0.03);
       const stopAt = now + stopDelay;
       //debug
-      console.log(`Osc ${osc._id} stop() requested by _stopVoice at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
+      dlog(`Osc ${osc._id} stop() requested by _stopVoice at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
       //end debug
       try { osc.stop(stopAt); } catch {}
     }
@@ -335,7 +338,7 @@
       const osc = this.ctx.createOscillator();
       //debug
       osc._id = ++oscCounter;
-      console.log(`Osc ${osc._id} START (note ${note}) at now (${now.toFixed(3)})`);
+      dlog(`Osc ${osc._id} START (note ${note}) at now (${now.toFixed(3)})`);
       // end debug
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
@@ -370,7 +373,7 @@
         // Tune 5–8 seconds depending on how long you want tails.
         const autoStop = now + attack + 4.0;
         //debug
-        console.log(`Osc ${osc._id} autoStop scheduled at t=${autoStop.toFixed(3)} (now=${now.toFixed(3)})`);
+        dlog(`Osc ${osc._id} autoStop scheduled at t=${autoStop.toFixed(3)} (now=${now.toFixed(3)})`);
         //end debug
         try { osc.stop(autoStop); } catch {}
       } else {
@@ -386,7 +389,7 @@
       // Clean up only if we're still the active voice for this note
       osc.onended = () => {
         //debug
-        console.log(`Osc ${osc._id} ENDED at ctx.t=${this.ctx.currentTime.toFixed(3)}`);
+        dlog(`Osc ${osc._id} ENDED at ctx.t=${this.ctx.currentTime.toFixed(3)}`);
         //end debug
         if (this.active.get(note) === voiceObj) {
           this.active.delete(note);
@@ -422,7 +425,7 @@
       // Stop after it's essentially silent
       const stopAt = now + (isPiano ? 0.65 : 0.45);
       //debug
-      console.log(`Osc ${osc._id} noteOff stop scheduled at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
+      dlog(`Osc ${osc._id} noteOff stop scheduled at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
       //end debug
       try { osc.stop(stopAt); } catch {}
       // Map cleanup happens in onended
@@ -456,6 +459,9 @@
   // State of sustained notes by source pointer
   const sustainedNotes = new Set(); // notes being held by sustain pedal
   let sustainOn = false;
+
+  const SUSTAIN_VISUAL_TTL_MS = 8000; // how long a sustained key stays green if sustain remains on
+  const sustainTimers = new Map(); // note -> timeout id
 
   // Pointer tracking for dragging across keys
   const pointerToNote = new Map(); // pointerId -> note
@@ -608,12 +614,25 @@
     const el = noteToEl.get(note);
   
     if (sustainOn) {
-      // Keep sounding until sustain is turned off
+      // Keep sounding until sustain is turned off (visual green has a TTL so it doesn't stick forever)
       sustainedNotes.add(note);
       if (el) {
         el.classList.remove("active");
         el.classList.add("sustained");
       }
+
+      // Refresh per-note sustain visual TTL
+      const prior = sustainTimers.get(note);
+      if (prior) clearTimeout(prior);
+      sustainTimers.set(
+        note,
+        setTimeout(() => {
+          sustainedNotes.delete(note);
+          sustainTimers.delete(note);
+          const keyEl = noteToEl.get(note);
+          if (keyEl) keyEl.classList.remove("sustained");
+        }, SUSTAIN_VISUAL_TTL_MS)
+      );
       return;
     }
   
@@ -641,8 +660,14 @@
           if (el) el.classList.remove("sustained");
           audio.noteOff(note);
           sustainedNotes.delete(note);
+          const tid = sustainTimers.get(note);
+          if (tid) { clearTimeout(tid); sustainTimers.delete(note); }
         }
       }
+
+      // Clear any remaining sustain TTL timers
+      for (const tid of sustainTimers.values()) clearTimeout(tid);
+      sustainTimers.clear();
     }
   }
 
@@ -870,8 +895,11 @@
     octaveOffset = Math.max(-3, Math.min(3, next));
     // Turn off any sounding notes that are now out-of-range
     audio.allOff();
+    setSustain(false);
     pressedNotes.clear();
     pointerToNote.clear();
+    keyboardHeld.clear();
+    sustainedNotes.clear();
     buildPiano();
   }
 
@@ -888,11 +916,13 @@
   window.addEventListener("blur", () => {
     audio.allOff();
     setSustain(false);
+    for (const tid of sustainTimers.values()) clearTimeout(tid);
+    sustainTimers.clear();
     pressedNotes.clear();
     pointerToNote.clear();
     keyboardHeld.clear();
     sustainedNotes.clear();
-    setAudioEnabled(false);
+    void setAudioEnabled(false).catch(() => {});
   
     for (const el of noteToEl.values()) {
       el.classList.remove("active");
@@ -900,19 +930,14 @@
     }
   });
   window.addEventListener("noteended", (e) => {
-    console.log("noteended fired:", e.detail);
     const note = Number(e.detail?.note);
     if (!Number.isFinite(note)) return;
-  
+
     // If the user isn't physically holding it, clear sustained state + UI
     if (!pressedNotes.has(note)) {
-      sustainedNotes.clear();
       sustainedNotes.delete(note);
       const el = noteToEl.get(note);
-      if (el) {
-        el.classList.remove("sustained");
-        el.classList.remove("active");
-      }
+      if (el) el.classList.remove("sustained");
     }
   });
 
