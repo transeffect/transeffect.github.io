@@ -230,17 +230,23 @@
           Velocity
           <input id="vel" type="range" min="0.05" max="1" step="0.01" value="0.8" />
         </span>
+		<button id="btnPanTest">Pan Test</button>	
+		<span class="pill">
+		  Stereo Width
+		  <input id="panWidth" type="range" min="0" max="1.5" step="0.01" value="1.0" />
+		</span>
       </div>
     </header>
 
     <div class="main">
       <div class="pianoWrap">
-        <div id="piano" class="piano" aria-label="On-screen piano"></div>
+        <div id="piano" class="piano" aria-label="On-screen piano"> 	
+</div>
       </div>
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.021
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.022
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -330,14 +336,14 @@
       const v = Math.max(0.01, Math.min(1, velocity));
       const vCurve = Math.pow(v, 0.75);
 
+// Stereo panning mapped to the currently visible keyboard range
       const span = Math.max(1, VISIBLE_END - VISIBLE_START);
-      let pos = (note - VISIBLE_START) / span;     // 0..1-ish
+      let pos = (note - VISIBLE_START) / span;     // 0..1-ish across visible keys
       pos = Math.max(0, Math.min(1, pos));         // clamp
       let pan = (pos * 2 - 1) * 0.55;              // -0.55..+0.55
-
       // Softer notes feel narrower (optional but nice)
       pan *= (0.65 + 0.35 * vCurve);
-  
+      pan = Math.max(-1, Math.min(1, pan));
       const attack = 0.005 + (1 - vCurve) * 0.035;
       const cutoff = 900 + vCurve * 5200;
       const q = 0.55 + vCurve * 0.35;
@@ -351,10 +357,9 @@
       osc.type = "triangle";
       osc.frequency.setValueAtTime(midiToFreq(note), now);
 
+      // Micro-detune (cents) for a slightly more natural sound
       const detuneMax = 5; // cents (try 4–7)
       const detune = (Math.random() * 2 - 1) * detuneMax;
-      
-      // Optional: softer notes detune a bit less
       osc.detune.setValueAtTime(detune * (0.6 + 0.4 * vCurve), now);
   
       const filter = this.ctx.createBiquadFilter();
@@ -440,7 +445,7 @@
       damperGain.gain.cancelScheduledValues(now);
       damperGain.gain.setTargetAtTime(0.0001, now, tc);
   
-      // Stop after it's essentially silent
+      // Stop after it is essentially silent
       const stopAt = now + (isPiano ? 0.65 : 0.45);
       //debug
       dlog(`Osc ${osc._id} noteOff stop scheduled at t=${stopAt.toFixed(3)} (now=${now.toFixed(3)})`);
@@ -465,13 +470,18 @@
   const pianoEl = document.getElementById("piano");
   const statusEl = document.getElementById("status");
 
-  // Range: 2 octaves default (C4..B5). We'll shift with octaveOffset.
+  // Range: 2 octaves default (C4..B5). We will shift with octaveOffset.
   const BASE_START = 60; // C4
   const OCTAVES = 2;
   let octaveOffset = 0;
 
+// Visible keyboard range (updated by buildPiano) for pan mapping
   let VISIBLE_START = BASE_START;  // will be overwritten by buildPiano()
   let VISIBLE_END = BASE_START + OCTAVES * 12 - 1;
+
+// Stereo width control: 0 = mono, 1 = normal, >1 = exaggerated for testing
+const PAN_BASE = 0.55;
+let panWidth = 1.0;
 
   // State of pressed notes by source pointer
   const pressedNotes = new Set(); // notes currently down (regardless of source)
@@ -487,11 +497,16 @@
   // Pointer tracking for dragging across keys
   const pointerToNote = new Map(); // pointerId -> note
 
-  // Velocity slider for touch/mouse (since we don't have real velocity)
+  // Velocity slider for touch/mouse (since we do not have real velocity)
   const velEl = document.getElementById("vel");
   const volEl = document.getElementById("vol");
 
-    // ---------------------------
+  const panWidthEl = document.getElementById("panWidth");
+  const panTestBtn = document.getElementById("btnPanTest");
+  // Init from UI
+  if (panWidthEl) panWidth = Number(panWidthEl.value) || 1.0;
+
+  // ---------------------------
   // Phase 1.5: Computer keyboard input (QWERTY)
   // ---------------------------
 
@@ -543,7 +558,7 @@
   }
 
   window.addEventListener("keydown", (e) => {
-    // Don't hijack typing or slider interactions
+    // Do not hijack typing or slider interactions
     if (isTypingTarget(e.target)) return;
 
     if (e.code === "KeyO") {
@@ -614,7 +629,7 @@
   function noteOn(evt) {
     const { note, velocity } = evt;
   
-    // If a note was being sustained and is pressed again, it's no longer "pedal-only"
+    // If a note was being sustained and is pressed again, it is no longer "pedal-only"
     sustainedNotes.delete(note);
   
     pressedNotes.add(note);
@@ -635,7 +650,7 @@
     const el = noteToEl.get(note);
   
     if (sustainOn) {
-      // Keep sounding until sustain is turned off (visual green has a TTL so it doesn't stick forever)
+      // Keep sounding until sustain is turned off (visual green has a TTL so it does not stick forever)
       sustainedNotes.add(note);
       if (el) {
         el.classList.remove("active");
@@ -726,7 +741,7 @@
     });
 
     // Position black keys relative to white keys.
-    // We'll compute left offset based on white index.
+    // We will compute left offset based on white index.
     // Pattern within octave: C# after C, D# after D, F# after F, G# after G, A# after A
     const blackOffsets = new Map(); // note -> left px
     const whiteWidth = 52;
@@ -917,6 +932,34 @@
     audio.setVolume(Number(volEl.value));
   });
 
+if (panWidthEl) {
+  panWidthEl.addEventListener("input", () => {
+    panWidth = Number(panWidthEl.value) || 1.0;
+  });
+}
+
+// Simple pan test: play lowest then highest visible note so you can hear L/R
+if (panTestBtn) {
+  panTestBtn.addEventListener("click", async () => {
+    try {
+      await setAudioEnabled(true);
+    } catch {}
+    const v = Number(velEl?.value) || 0.8;
+    const low = VISIBLE_START;
+    const high = VISIBLE_END;
+
+    const dur = 180;      // ms per note
+    const gap = 120;      // ms between notes
+
+    audio.noteOn(low, v);
+    setTimeout(() => audio.noteOff(low), dur);
+
+    setTimeout(() => {
+      audio.noteOn(high, v);
+      setTimeout(() => audio.noteOff(high), dur);
+    }, dur + gap);
+  });
+}
   function setOctaveOffset(next) {
     octaveOffset = Math.max(-3, Math.min(3, next));
     // Turn off any sounding notes that are now out-of-range
@@ -959,7 +1002,7 @@
     const note = Number(e.detail?.note);
     if (!Number.isFinite(note)) return;
 
-    // If the user isn't physically holding it, clear sustained state + UI
+    // If the user is not physically holding it, clear sustained state + UI
     if (!pressedNotes.has(note)) {
       sustainedNotes.delete(note);
       const el = noteToEl.get(note);
