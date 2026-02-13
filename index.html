@@ -246,7 +246,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.022
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.023
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -275,6 +275,18 @@
     // A4 = 440 at MIDI 69
     return 440 * Math.pow(2, (n - 69) / 12);
   }
+
+  async function loadLessonPack(packId) {
+  const manifestRes = await fetch(`packs/${packId}/manifest.json`);
+  const manifest = await manifestRes.json();
+  return manifest;
+}
+
+async function loadLesson(packId, lessonFile) {
+  const res = await fetch(`packs/${packId}/${lessonFile}`);
+  return res.json();
+}
+
 
   // ---------------------------
   // Audio Engine (simple, responsive synth)
@@ -639,6 +651,7 @@ let panWidth = 1.0;
       el.classList.remove("sustained");
     }
     audio.noteOn(note, velocity);
+	lessonEngine.handleNoteOn(note);
   }
   
   function noteOff(evt) {
@@ -679,6 +692,7 @@ let panWidth = 1.0;
       el.classList.remove("sustained");
     }
     audio.noteOff(note);
+	lessonEngine.handleNoteOff(note);
   }
 
   function setSustain(next) {
@@ -1010,8 +1024,91 @@ if (panTestBtn) {
     }
   });
 
+//----------------
+// LESSON ENGINE
+//----------------
+class LessonEngine {
+  constructor() {
+    this.active = false;
+    this.lesson = null;
+    this.stepIndex = 0;
+    this.held = new Set();
+  }
+
+  start(lesson) {
+    this.lesson = lesson;
+    this.stepIndex = 0;
+    this.held.clear();
+    this.active = true;
+    this.showTargets();
+  }
+
+  stop() {
+    this.active = false;
+    this.clearTargets();
+  }
+
+  showTargets() {
+    this.clearTargets();
+    const step = this.lesson.steps[this.stepIndex];
+    step.notes.forEach(n => {
+      const el = noteToEl.get(n);
+      if (el) el.classList.add("target");
+    });
+  }
+
+  clearTargets() {
+    for (const el of noteToEl.values()) {
+      el.classList.remove("target");
+      el.classList.remove("wrong");
+    }
+  }
+
+  handleNoteOn(note) {
+    if (!this.active) return;
+
+    const step = this.lesson.steps[this.stepIndex];
+    if (!step.notes.includes(note)) {
+      const el = noteToEl.get(note);
+      if (el) {
+        el.classList.add("wrong");
+        setTimeout(() => el.classList.remove("wrong"), 200);
+      }
+      return;
+    }
+
+    this.held.add(note);
+
+    const allPressed = step.notes.every(n => this.held.has(n));
+    if (allPressed) {
+      this.next();
+    }
+  }
+
+  handleNoteOff(note) {
+    this.held.delete(note);
+  }
+
+  next() {
+    this.stepIndex++;
+    this.held.clear();
+    if (this.stepIndex >= this.lesson.steps.length) {
+      this.stop();
+      return;
+    }
+    this.showTargets();
+  }
+}
+
+const lessonEngine = new LessonEngine();
+// End Lesson Engine
+
   // Initial render
   buildPiano();
+  loadLessonPack("beginner").then(async pack => {
+  const lesson = await loadLesson("beginner", pack.lessons[0].file);
+  lessonEngine.start(lesson);
+});
 })();
 </script>
 </body>
