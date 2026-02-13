@@ -167,6 +167,10 @@
 	  outline: 3px solid #00aaff;
 	  box-shadow: 0 0 0 4px rgba(0,170,255,0.25);
 	}
+	.key.wrong {
+	  outline: 3px solid #ff3333;
+	  box-shadow: 0 0 0 4px rgba(0,170,255,0.25);
+	}
     /* Active styling */
     .key.white.active {
       background: linear-gradient(#dfe9ff, #cfe0ff);
@@ -250,7 +254,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.027
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.028
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -1026,18 +1030,6 @@ if (panTestBtn) {
       const el = noteToEl.get(note);
       if (el) el.classList.remove("sustained");
     }
-  });
-  window.addEventListener("pointerdown", async function unlockAudio() {
-	  if (audioEnabled) {
-		await audio.ensureStarted();
-	  }
-	  window.removeEventListener("pointerdown", unlockAudio);
-  });
-  window.addEventListener("keydown", async function unlockAudio() {
-	  if (audioEnabled) {
-	    await audio.ensureStarted();
-	  }
-	  window.removeEventListener("keydown", unlockAudio);
   });
 
 //----------------
