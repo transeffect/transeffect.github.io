@@ -219,7 +219,7 @@
       </div>
 
       <div class="controls">
-        <button id="btnAudio" aria-pressed="false">Audio: Off</button>
+        <button id="btnAudio" aria-pressed="false">Audio: On</button>
         <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
         <button id="btnMode" aria-pressed="false">Mode: Piano</button>
         <button id="btnOctDown">Octave -</button>
@@ -250,7 +250,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.025
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.026
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -883,7 +883,7 @@ let panWidth = 1.0;
   // UI wiring
   // ---------------------------
 
-  let audioEnabled = false;
+  let audioEnabled = true;
   
   async function setAudioEnabled(next) {
     audioEnabled = !!next;
