@@ -1,0 +1,11 @@
+{
+  "packId": "beginner",
+  "title": "Beginner Pack",
+  "lessons": [
+    {
+      "id": "c-major-scale",
+      "title": "C Major Scale",
+      "file": "lessons/c-major-scale.json"
+    }
+  ]
+}
