@@ -6,7 +6,7 @@
   <meta http-equiv='cache-control' content='no-cache'> 
   <meta http-equiv='expires' content='0'> 
   <meta http-equiv='pragma' content='no-cache'>
-  <title>Piano MVP – Phase 1.5</title>
+  <title>Piano MVP – Phase 2.1</title>
   <style>
     :root {
       --bg: #0f1115;
@@ -211,7 +211,7 @@
     <header>
       <div class="title">
         <strong>Piano MVP</strong>
-        <span>Phase 1.5: On-screen keys + audio + highlighting.</span>
+        <span>Phase 2.1: On-screen keys + audio + highlighting.</span>
       </div>
 
       <div class="controls">
@@ -246,7 +246,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.023
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.024
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -277,15 +277,15 @@
   }
 
   async function loadLessonPack(packId) {
-  const manifestRes = await fetch(`packs/${packId}/manifest.json`);
-  const manifest = await manifestRes.json();
-  return manifest;
-}
+  	const manifestRes = await fetch(`packs/${packId}/manifest.json`);
+  	const manifest = await manifestRes.json();
+  	return manifest;
+  }
 
-async function loadLesson(packId, lessonFile) {
-  const res = await fetch(`packs/${packId}/${lessonFile}`);
-  return res.json();
-}
+  async function loadLesson(packId, lessonFile) {
+  	const res = await fetch(`packs/${packId}/${lessonFile}`);
+  	return res.json();
+  }
 
 
   // ---------------------------
@@ -1105,10 +1105,12 @@ const lessonEngine = new LessonEngine();
 
   // Initial render
   buildPiano();
-  loadLessonPack("beginner").then(async pack => {
-  const lesson = await loadLesson("beginner", pack.lessons[0].file);
-  lessonEngine.start(lesson);
-});
+
+	// Load and start lesson AFTER piano is built
+	loadLessonPack("beginner").then(async pack => {
+	  const lesson = await loadLesson("beginner", pack.lessons[0].file);
+	  lessonEngine.start(lesson);
+	});
 })();
 </script>
 </body>
