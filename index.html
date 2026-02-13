@@ -1027,6 +1027,18 @@ if (panTestBtn) {
       if (el) el.classList.remove("sustained");
     }
   });
+  window.addEventListener("pointerdown", async function unlockAudio() {
+	  if (audioEnabled) {
+		await audio.ensureStarted();
+	  }
+	  window.removeEventListener("pointerdown", unlockAudio);
+  });
+  window.addEventListener("keydown", async function unlockAudio() {
+	  if (audioEnabled) {
+	    await audio.ensureStarted();
+	  }
+	  window.removeEventListener("keydown", unlockAudio);
+  });
 
 //----------------
 // LESSON ENGINE
