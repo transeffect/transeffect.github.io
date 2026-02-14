@@ -162,16 +162,7 @@
       color: rgba(255,255,255,.65);
       font-size: 10px;
     }
-	/* Lesson CSS */
-	.key.target {
-	  outline: 3px solid #00aaff;
-	  box-shadow: 0 0 0 4px rgba(0,170,255,0.25);
-	}
-	.key.wrong {
-	  outline: 3px solid #ff3333;
-	  box-shadow: 0 0 0 4px rgba(0,170,255,0.25);
-	}
-    /* Active styling */
+/* Active styling */
     .key.white.active {
       background: linear-gradient(#dfe9ff, #cfe0ff);
       box-shadow: inset 0 -18px 26px rgba(0,0,0,.08);
@@ -212,6 +203,38 @@
       background: rgba(255,255,255,.06);
       color: var(--text);
     }
+  
+.lessonBar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.lessonBar select{
+  margin-left:8px;
+  background:#0f1115;
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:10px;
+  padding:6px 8px;
+  font:inherit;
+}
+.statusText{
+  opacity:.85;
+  font-size:14px;
+  margin-left:6px;
+}
+.key.target{
+  outline:3px solid rgba(0,170,255,.95);
+  box-shadow:0 0 0 4px rgba(0,170,255,.20);
+  z-index:5;
+}
+.key.wrong{
+  outline:3px solid rgba(255,80,80,.95);
+  box-shadow:0 0 0 4px rgba(255,80,80,.18);
+  z-index:6;
+}
   </style>
 </head>
 <body>
@@ -244,6 +267,18 @@
 		  <input id="panWidth" type="range" min="0" max="1.5" step="0.01" value="1.0" />
 		</span>
       </div>
+
+<div class="lessonBar" role="region" aria-label="Lesson controls">
+  <span class="pill">
+    Lesson
+    <select id="lessonSelect" aria-label="Select lesson"></select>
+  </span>
+  <button id="btnLessonStart">Lesson: Start</button>
+  <button id="btnLessonStop" disabled>Stop</button>
+  <button id="btnLessonPrev" disabled>Prev</button>
+  <button id="btnLessonNext" disabled>Next</button>
+  <span id="lessonStatus" class="statusText">Lesson: (not loaded)</span>
+</div>
     </header>
 
     <div class="main">
@@ -254,7 +289,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.0.028
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.1.000
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -284,16 +319,21 @@
     return 440 * Math.pow(2, (n - 69) / 12);
   }
 
-  async function loadLessonPack(packId) {
-  	const manifestRes = await fetch(`packs/${packId}/manifest.json`);
-  	const manifest = await manifestRes.json();
-  	return manifest;
-  }
+  
+async function loadLessonPack(packId) {
+  const url = `./packs/${packId}/manifest.json`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Pack manifest fetch failed ${res.status} ${res.statusText}: ${url}`);
+  return res.json();
+}
 
-  async function loadLesson(packId, lessonFile) {
-  	const res = await fetch(`packs/${packId}/${lessonFile}`);
-  	return res.json();
-  }
+async function loadLesson(packId, lessonFile) {
+  const url = `./packs/${packId}/${lessonFile}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Lesson fetch failed ${res.status} ${res.statusText}: ${url}`);
+  return res.json();
+}
+
 
 
   // ---------------------------
@@ -765,7 +805,6 @@ let panWidth = 1.0;
     // Position black keys relative to white keys.
     // We will compute left offset based on white index.
     // Pattern within octave: C# after C, D# after D, F# after F, G# after G, A# after A
-    const blackOffsets = new Map(); // note -> left px
     const whiteWidth = 52;
     const blackWidth = 34;
 
@@ -788,7 +827,7 @@ let panWidth = 1.0;
       if (li == null || ui == null) return;
 
       // Place centered between those whites, with a small bias so it looks natural.
-      const centerBetween = ((li + ui) / 2) * whiteWidth;
+      const centerBetween = (((li + 0.5) + (ui + 0.5)) / 2) * whiteWidth;
       const left = centerBetween - (blackWidth / 2);
 
       const key = document.createElement("div");
@@ -812,6 +851,14 @@ let panWidth = 1.0;
     for (const note of pressedNotes) {
       const el = noteToEl.get(note);
       if (el) el.classList.add("active");
+      // If a lesson is active, re-apply target highlights after rebuild
+    if (typeof lessonEngine !== "undefined" && lessonEngine?.refreshTargets) {
+      lessonEngine.refreshTargets();
+    }
+  }
+    // If a lesson is active, re-apply target highlights after rebuild
+    if (typeof lessonEngine !== "undefined" && lessonEngine?.refreshTargets) {
+      lessonEngine.refreshTargets();
     }
   }
 
@@ -1035,6 +1082,7 @@ if (panTestBtn) {
 //----------------
 // LESSON ENGINE
 //----------------
+
 class LessonEngine {
   constructor() {
     this.active = false;
@@ -1048,18 +1096,40 @@ class LessonEngine {
     this.stepIndex = 0;
     this.held.clear();
     this.active = true;
-    this.showTargets();
+    this.refreshTargets();
+    this._emitStatus();
   }
 
   stop() {
     this.active = false;
+    this.held.clear();
     this.clearTargets();
+    this._emitStatus();
+  }
+
+  refreshTargets() {
+    if (!this.active || !this.lesson) return;
+    this.showTargets();
+  }
+
+  getStep() {
+    if (!this.lesson) return null;
+    return this.lesson.steps?.[this.stepIndex] ?? null;
+  }
+
+  getStepLabel() {
+    const step = this.getStep();
+    if (!step) return "";
+    const label = step.label || "Play";
+    const notes = (step.notes || []).map(midiToName).join(", ");
+    return `${label} (${notes})`;
   }
 
   showTargets() {
     this.clearTargets();
-    const step = this.lesson.steps[this.stepIndex];
-    step.notes.forEach(n => {
+    const step = this.getStep();
+    if (!step) return;
+    (step.notes || []).forEach(n => {
       const el = noteToEl.get(n);
       if (el) el.classList.add("target");
     });
@@ -1073,52 +1143,219 @@ class LessonEngine {
   }
 
   handleNoteOn(note) {
-    if (!this.active) return;
+    if (!this.active || !this.lesson) return;
 
-    const step = this.lesson.steps[this.stepIndex];
-    if (!step.notes.includes(note)) {
+    const step = this.getStep();
+    if (!step) return;
+
+    const want = step.notes || [];
+    if (!want.includes(note)) {
       const el = noteToEl.get(note);
       if (el) {
         el.classList.add("wrong");
-        setTimeout(() => el.classList.remove("wrong"), 200);
+        setTimeout(() => el.classList.remove("wrong"), 160);
       }
       return;
     }
 
     this.held.add(note);
 
-    const allPressed = step.notes.every(n => this.held.has(n));
-    if (allPressed) {
-      this.next();
-    }
+    const allPressed = want.every(n => this.held.has(n));
+    if (allPressed) this.next();
   }
 
   handleNoteOff(note) {
     this.held.delete(note);
   }
 
-  next() {
-    this.stepIndex++;
+  goToStep(idx) {
+    if (!this.lesson) return;
+    const max = this.lesson.steps?.length ?? 0;
+    this.stepIndex = Math.max(0, Math.min(max - 1, idx));
     this.held.clear();
-    if (this.stepIndex >= this.lesson.steps.length) {
+    if (this.active) this.refreshTargets();
+    this._emitStatus();
+  }
+
+  next() {
+    if (!this.lesson) return;
+    const max = this.lesson.steps?.length ?? 0;
+    const nextIdx = this.stepIndex + 1;
+    if (nextIdx >= max) {
       this.stop();
       return;
     }
-    this.showTargets();
+    this.goToStep(nextIdx);
+  }
+
+  prev() {
+    this.goToStep(this.stepIndex - 1);
+  }
+
+  _emitStatus() {
+    window.dispatchEvent(new CustomEvent("lessonstatus", { detail: this.getStatus() }));
+  }
+
+  getStatus() {
+    const title = this.lesson?.title || "(none)";
+    const total = this.lesson?.steps?.length ?? 0;
+    const stepNum = total ? (this.stepIndex + 1) : 0;
+    return {
+      active: this.active,
+      title,
+      stepIndex: this.stepIndex,
+      stepNum,
+      total,
+      stepLabel: this.getStepLabel()
+    };
   }
 }
 
 const lessonEngine = new LessonEngine();
 // End Lesson Engine
 
-  // Initial render
-  buildPiano();
+// ---------------------------
+// Lesson Pack Loader + UI
+// ---------------------------
+const LESSON_PACK_ID = "beginner";
+let lessonManifest = null;
+let loadedLessons = new Map(); // lessonId -> lesson json
 
-	// Load and start lesson AFTER piano is built
-	loadLessonPack("beginner").then(async pack => {
-	  const lesson = await loadLesson("beginner", pack.lessons[0].file);
-	  lessonEngine.start(lesson);
-	});
+function setLessonControlsEnabled(isLoaded) {
+  const startBtn = document.getElementById("btnLessonStart");
+  const stopBtn = document.getElementById("btnLessonStop");
+  const prevBtn = document.getElementById("btnLessonPrev");
+  const nextBtn = document.getElementById("btnLessonNext");
+  startBtn.disabled = !isLoaded;
+  stopBtn.disabled = !isLoaded;
+  prevBtn.disabled = !isLoaded;
+  nextBtn.disabled = !isLoaded;
+}
+
+function renderLessonStatus(status) {
+  const el = document.getElementById("lessonStatus");
+  if (!el) return;
+
+  if (!lessonManifest) {
+    el.textContent = "Lesson: (pack not loaded)";
+    return;
+  }
+
+  if (!status || !status.title) {
+    el.textContent = "Lesson: Ready";
+    return;
+  }
+
+  if (!status.active) {
+    el.textContent = `Lesson: ${status.title} (ready)`;
+  } else {
+    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
+  }
+}
+
+window.addEventListener("lessonstatus", (e) => {
+  renderLessonStatus(e.detail);
+});
+
+async function initLessons() {
+  try {
+    lessonManifest = await loadLessonPack(LESSON_PACK_ID);
+
+    const select = document.getElementById("lessonSelect");
+    select.innerHTML = "";
+
+    const lessons = lessonManifest.lessons || [];
+    for (const item of lessons) {
+      const opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = item.title || item.id;
+      opt.dataset.file = item.file;
+      select.appendChild(opt);
+    }
+
+    if (lessons.length === 0) {
+      setLessonControlsEnabled(false);
+      renderLessonStatus(null);
+      return;
+    }
+
+    // Preload the first lesson so Start works immediately
+    await preloadLessonFromSelect();
+    setLessonControlsEnabled(true);
+    renderLessonStatus(lessonEngine.getStatus());
+
+    select.addEventListener("change", async () => {
+      await preloadLessonFromSelect();
+      // If currently active, restart from step 1 with the new lesson
+      if (lessonEngine.active) {
+        const l = getSelectedLesson();
+        if (l) lessonEngine.start(l);
+      } else {
+        renderLessonStatus(lessonEngine.getStatus());
+      }
+    });
+
+    document.getElementById("btnLessonStart").addEventListener("click", () => {
+      const l = getSelectedLesson();
+      if (l) lessonEngine.start(l);
+    });
+
+    document.getElementById("btnLessonStop").addEventListener("click", () => {
+      lessonEngine.stop();
+    });
+
+    document.getElementById("btnLessonPrev").addEventListener("click", () => {
+      lessonEngine.prev();
+    });
+
+    document.getElementById("btnLessonNext").addEventListener("click", () => {
+      lessonEngine.next();
+    });
+
+  } catch (err) {
+    console.error("Lesson init failed:", err);
+    setLessonControlsEnabled(false);
+    renderLessonStatus(null);
+  }
+}
+
+function getSelectedLessonId() {
+  const select = document.getElementById("lessonSelect");
+  return select?.value || null;
+}
+
+function getSelectedLessonFile() {
+  const select = document.getElementById("lessonSelect");
+  const opt = select?.selectedOptions?.[0];
+  return opt?.dataset?.file || null;
+}
+
+function getSelectedLesson() {
+  const id = getSelectedLessonId();
+  if (!id) return null;
+  return loadedLessons.get(id) || null;
+}
+
+async function preloadLessonFromSelect() {
+  const id = getSelectedLessonId();
+  const file = getSelectedLessonFile();
+  if (!id || !file) return;
+
+  if (!loadedLessons.has(id)) {
+    const lesson = await loadLesson(LESSON_PACK_ID, file);
+    loadedLessons.set(id, lesson);
+  }
+
+  // Keep status updated even if not started
+  renderLessonStatus(lessonEngine.getStatus());
+}
+
+// ---------------------------
+// Initial render
+// ---------------------------
+buildPiano();
+initLessons();
+
 })();
 </script>
 </body>
