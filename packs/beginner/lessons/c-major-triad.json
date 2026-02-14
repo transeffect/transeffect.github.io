@@ -1,0 +1,35 @@
+{
+  "id": "c-major-triad",
+  "title": "C Major Triad",
+  "settings": {
+    "requireRelease": true
+  },
+  "steps": [
+    {
+      "label": "Play C",
+      "notes": [
+        60
+      ]
+    },
+    {
+      "label": "Play E",
+      "notes": [
+        64
+      ]
+    },
+    {
+      "label": "Play G",
+      "notes": [
+        67
+      ]
+    },
+    {
+      "label": "Play C major chord",
+      "notes": [
+        60,
+        64,
+        67
+      ]
+    }
+  ]
+}
