@@ -1,11 +1,17 @@
 {
   "packId": "beginner",
   "title": "Beginner Pack",
+  "version": "1.0.0",
   "lessons": [
     {
       "id": "c-major-scale",
-      "title": "C Major Scale",
+      "title": "C Major Scale (5 notes)",
       "file": "lessons/c-major-scale.json"
+    },
+    {
+      "id": "c-major-triad",
+      "title": "C Major Triad",
+      "file": "lessons/c-major-triad.json"
     }
   ]
 }
