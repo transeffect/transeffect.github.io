@@ -1,14 +1,39 @@
 {
   "id": "c-major-scale",
-  "title": "C Major Scale",
+  "title": "C Major Scale (5 notes)",
   "settings": {
     "requireRelease": true
   },
   "steps": [
-    { "label": "Play C", "notes": [60] },
-    { "label": "Play D", "notes": [62] },
-    { "label": "Play E", "notes": [64] },
-    { "label": "Play F", "notes": [65] },
-    { "label": "Play G", "notes": [67] }
+    {
+      "label": "Play C",
+      "notes": [
+        60
+      ]
+    },
+    {
+      "label": "Play D",
+      "notes": [
+        62
+      ]
+    },
+    {
+      "label": "Play E",
+      "notes": [
+        64
+      ]
+    },
+    {
+      "label": "Play F",
+      "notes": [
+        65
+      ]
+    },
+    {
+      "label": "Play G",
+      "notes": [
+        67
+      ]
+    }
   ]
 }
