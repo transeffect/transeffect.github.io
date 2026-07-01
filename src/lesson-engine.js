@@ -14,6 +14,7 @@ export class LessonEngine {
     this.onPracticeEvent = onPracticeEvent;
     this.rhythmTimers = new Set();
     this.rhythmState = null;
+    this.rhythmReady = false;
   }
 
   start(lesson) {
@@ -23,11 +24,12 @@ export class LessonEngine {
     this.inputIndex = 0;
     this.held.clear();
     this.awaitingRelease = false;
+    this.rhythmReady = false;
     this.stepStartedAt = performance.now();
     this.active = true;
     this._emitPractice("lessonstart", this.getStatus());
     if (this.isRhythmMode()) {
-      this.startRhythmStep();
+      this.prepareRhythmStep();
     } else {
       this.refreshTargets();
     }
@@ -41,6 +43,7 @@ export class LessonEngine {
     this.inputIndex = 0;
     this.awaitingRelease = false;
     this.rhythmState = null;
+    this.rhythmReady = false;
     this.clearTargets();
     this._emitPractice("lessonstop", { reason, ...this.getStatus() });
     this._emitStatus();
@@ -88,6 +91,7 @@ export class LessonEngine {
     if (!step || this.awaitingRelease) return;
 
     if (this.isRhythmMode()) {
+      if (this.rhythmReady) return;
       this.handleRhythmNoteOn(note, step);
       return;
     }
@@ -149,10 +153,11 @@ export class LessonEngine {
     this.inputIndex = 0;
     this.held.clear();
     this.awaitingRelease = false;
+    this.rhythmReady = false;
     this.stepStartedAt = performance.now();
     if (this.active) {
       if (this.isRhythmMode()) {
-        this.startRhythmStep();
+        this.prepareRhythmStep();
       } else {
         this.refreshTargets();
       }
@@ -165,6 +170,7 @@ export class LessonEngine {
     if (!step) return;
 
     this.clearRhythmTimers();
+    this.rhythmReady = false;
     this.inputIndex = 0;
     this.skipRhythmRests(step);
 
@@ -200,6 +206,29 @@ export class LessonEngine {
     this.scheduleRhythmBeatTicks(step);
     this.scheduleRhythmMissCheck(step);
     this.refreshTargets();
+  }
+
+  prepareRhythmStep() {
+    const step = this.getStep();
+    if (!step) return;
+
+    this.clearRhythmTimers();
+    this.inputIndex = 0;
+    this.skipRhythmRests(step);
+    this.rhythmReady = true;
+    this.rhythmState = null;
+    this.clearTargets();
+    this._emitPractice("rhythmready", {
+      stepIndex: this.stepIndex,
+      stepLabel: this.getStepLabel()
+    });
+    this._emitStatus();
+  }
+
+  beginRhythm() {
+    if (!this.active || !this.isRhythmMode() || !this.rhythmReady) return;
+    this.startRhythmStep();
+    this._emitStatus();
   }
 
   handleRhythmNoteOn(note, step) {
@@ -536,6 +565,7 @@ export class LessonEngine {
       challenges: this.lesson?.challenges || [],
       currentChallenge: this.getStep(),
       inputIndex: this.inputIndex,
+      rhythmReady: this.rhythmReady,
       rhythm: this.rhythmState ? {
         tempo: this.rhythmState.tempo,
         toleranceMs: this.rhythmState.toleranceMs,

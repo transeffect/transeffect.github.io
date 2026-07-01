@@ -85,8 +85,13 @@
           </div>
           <div id="practiceFeedback" class="practiceFeedback">Start a lesson to track progress.</div>
         </div>
+        <div id="earTrainingControls" class="earTrainingControls" hidden>
+          <button id="btnPlayPrompt" class="primaryAction">Play Prompt</button>
+          <div id="earChoices" class="buttonRow" aria-label="Ear training choices"></div>
+        </div>
         <div id="rhythmGuide" class="rhythmGuide" hidden>
           <div id="rhythmGuideMeta" class="rhythmGuideMeta"></div>
+          <button id="btnBeginRhythm" class="primaryAction rhythmBegin" hidden>Begin Rhythm</button>
           <div id="rhythmGuideEvents" class="rhythmGuideEvents" aria-label="Rhythm pattern"></div>
         </div>
         <div class="progressTrack">
@@ -98,10 +103,6 @@
           <span id="practiceStreak">Streak 0</span>
           <span id="practiceTime">Time 0s</span>
         </div>
-        <div id="earTrainingControls" class="earTrainingControls" hidden>
-          <button id="btnPlayPrompt">Play Prompt</button>
-          <div id="earChoices" class="buttonRow" aria-label="Ear training choices"></div>
-        </div>
         <div id="practiceSummary" class="practiceSummary" hidden></div>
       </section>
 
@@ -112,7 +113,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.12.002
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.12.004
         </div>
         <div id="status">Audio: not enabled</div>
       </div>

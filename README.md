@@ -289,7 +289,7 @@ Important optional keys:
 
 ### rhythmDrill
 
-Use `rhythmDrill` for timing and rhythmic accuracy. Rhythm events are evaluated against a tempo-based clock with count-in beats, metronome ticks, early/late feedback, missed-note detection, average timing-error scoring, and a visual note/rest guide in the Lesson HUD.
+Use `rhythmDrill` for timing and rhythmic accuracy. Rhythm drills first show a ready phase so the player can study the visual note/rest guide, then `Begin Rhythm` starts the count-in, metronome ticks, early/late feedback, missed-note detection, and average timing-error scoring.
 
 ```json
 {

@@ -100,14 +100,16 @@ export class PracticeEngine {
         title: detail.title || "",
         challenges: detail.challenges || createChallengePlaceholders(detail.total || 0)
       });
-      this.session.lastMessage = "Lesson started. Play the highlighted notes.";
+      this.session.lastMessage = getStartMessage(this.session.mode);
       return this.getSnapshot();
     }
 
     if (type === "correctnote") {
       if (!this.session.active) return this.getSnapshot();
       this.session.correctNotes += 1;
-      this.session.lastMessage = "Correct note.";
+      this.session.lastMessage = this.session.mode === PRACTICE_MODES.EAR_TRAINING
+        ? "Correct answer."
+        : "Correct note.";
       return this.getSnapshot();
     }
 
@@ -115,7 +117,15 @@ export class PracticeEngine {
       if (!this.session.active) return this.getSnapshot();
       this.session.wrongNotes += 1;
       this.session.currentStreak = 0;
-      this.session.lastMessage = "Wrong note. Try the highlighted target.";
+      this.session.lastMessage = this.session.mode === PRACTICE_MODES.EAR_TRAINING
+        ? "Not quite. Play the prompt again and choose another answer."
+        : "Wrong note. Try the highlighted target.";
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmready") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.lastMessage = "Study the rhythm guide first. Press Begin Rhythm when you are ready.";
       return this.getSnapshot();
     }
 
@@ -273,6 +283,19 @@ export function normalizePracticeMode(mode) {
 
 function createChallengePlaceholders(total) {
   return Array.from({ length: total }, (_, idx) => ({ id: `step-${idx + 1}` }));
+}
+
+function getStartMessage(mode) {
+  if (mode === PRACTICE_MODES.EAR_TRAINING) {
+    return "Listen to the prompt, then choose the answer.";
+  }
+  if (mode === PRACTICE_MODES.RHYTHM_DRILL) {
+    return "Study the rhythm guide first. Start the rhythm when you are ready.";
+  }
+  if (mode === PRACTICE_MODES.SCALE_DRILL || mode === PRACTICE_MODES.INTERVAL_DRILL) {
+    return "Play the highlighted notes in order.";
+  }
+  return "Play the highlighted notes.";
 }
 
 export function formatDuration(ms) {

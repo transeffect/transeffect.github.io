@@ -30,6 +30,7 @@ const practiceStepLabelEl = document.getElementById("practiceStepLabel");
 const rhythmGuideEl = document.getElementById("rhythmGuide");
 const rhythmGuideMetaEl = document.getElementById("rhythmGuideMeta");
 const rhythmGuideEventsEl = document.getElementById("rhythmGuideEvents");
+const beginRhythmBtn = document.getElementById("btnBeginRhythm");
 const earTrainingControlsEl = document.getElementById("earTrainingControls");
 const earChoicesEl = document.getElementById("earChoices");
 const playPromptBtn = document.getElementById("btnPlayPrompt");
@@ -458,6 +459,8 @@ function renderPracticeHeader(status) {
     practiceStepLabelEl.textContent = "Choose a lesson and press Start.";
   } else if (status.awaitingRelease) {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: release the target notes.`;
+  } else if (status.rhythmReady) {
+    practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: study the pattern, then press Begin Rhythm.`;
   } else {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
   }
@@ -473,6 +476,7 @@ function renderRhythmGuide(status) {
   const show = appMode === "lesson" && status?.active && status.mode === "rhythmDrill" && events.length > 0;
   rhythmGuideEl.hidden = !show;
   rhythmGuideEventsEl.innerHTML = "";
+  if (beginRhythmBtn) beginRhythmBtn.hidden = !show || !status.rhythmReady;
 
   if (!show) {
     rhythmGuideMetaEl.textContent = "";
@@ -485,14 +489,16 @@ function renderRhythmGuide(status) {
     .slice(0, activeIndex)
     .reduce((sum, event) => sum + rhythmBeats(event), 0);
   const activeLabel = activeEvent?.note == null ? "Rest" : midiToName(activeEvent.note);
-  rhythmGuideMetaEl.textContent = `Current target: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Rests are gray; the bright block is next.`;
+  rhythmGuideMetaEl.textContent = status.rhythmReady
+    ? `Study this rhythm first. Gray blocks are rests. Press Begin Rhythm when you are ready for the count-in.`
+    : `Current target: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Rests are gray; the bright block is next.`;
 
   for (let idx = 0; idx < events.length; idx += 1) {
     const event = events[idx];
     const beats = rhythmBeats(event);
     const isRest = event.note == null;
     const item = document.createElement("div");
-    item.className = `rhythmEvent${isRest ? " rest" : " note"}${idx === activeIndex ? " current" : ""}${idx < activeIndex ? " complete" : ""}`;
+    item.className = `rhythmEvent${isRest ? " rest" : " note"}${!status.rhythmReady && idx === activeIndex ? " current" : ""}${!status.rhythmReady && idx < activeIndex ? " complete" : ""}`;
     item.style.flexGrow = String(Math.max(0.5, beats));
 
     const label = document.createElement("span");
@@ -538,6 +544,10 @@ function renderEarTrainingControls(status) {
 
   if (!show) return;
 
+  if (playPromptBtn) {
+    playPromptBtn.textContent = getPromptButtonLabel(challenge.prompt);
+  }
+
   for (const choice of challenge.choices || []) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -547,6 +557,13 @@ function renderEarTrainingControls(status) {
     });
     earChoicesEl.appendChild(btn);
   }
+}
+
+function getPromptButtonLabel(prompt) {
+  if (prompt?.type === "progression") return "Play Progression";
+  if (prompt?.type === "chord") return "Play Chord";
+  if (prompt?.type === "interval") return "Play Interval";
+  return "Play Prompt";
 }
 
 async function playCurrentEarPrompt() {
@@ -765,6 +782,12 @@ if (midiToggleBtn) {
 if (playPromptBtn) {
   playPromptBtn.addEventListener("click", () => {
     void playCurrentEarPrompt();
+  });
+}
+
+if (beginRhythmBtn) {
+  beginRhythmBtn.addEventListener("click", () => {
+    lessonEngine.beginRhythm();
   });
 }
 

@@ -401,7 +401,9 @@
 
 .rhythmGuide {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
   padding: 10px;
   border: 1px solid rgba(255,255,255,.09);
   border-radius: 8px;
@@ -419,9 +421,14 @@
 }
 
 .rhythmGuideEvents {
+  grid-column: 1 / -1;
   display: flex;
   gap: 6px;
   min-height: 56px;
+}
+
+.rhythmBegin {
+  justify-self: end;
 }
 
 .rhythmEvent {
@@ -505,11 +512,18 @@
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
-  padding-top: 2px;
+  padding: 10px;
+  border: 1px solid rgba(160,255,218,.22);
+  border-radius: 8px;
+  background: rgba(160,255,218,.06);
 }
 
 .earTrainingControls[hidden] {
   display: none;
+}
+
+.earTrainingControls .buttonRow button {
+  min-width: 92px;
 }
 
 .practiceSummary {
@@ -589,5 +603,13 @@
 	  .rhythmGuideEvents {
 	    overflow-x: auto;
 	    padding-bottom: 2px;
+	  }
+
+	  .rhythmGuide {
+	    grid-template-columns: 1fr;
+	  }
+
+	  .rhythmBegin {
+	    justify-self: start;
 	  }
 }
