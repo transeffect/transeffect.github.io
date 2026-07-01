@@ -12,6 +12,16 @@ function assertNonEmptyString(value, path) {
   }
 }
 
+function assertOptionalNonEmptyString(value, path) {
+  if (value != null) assertNonEmptyString(value, path);
+}
+
+function assertOptionalStringArray(value, path) {
+  if (value == null) return;
+  if (!Array.isArray(value)) throw new Error(`${path} must be an array`);
+  value.forEach((item, idx) => assertNonEmptyString(item, `${path}[${idx}]`));
+}
+
 function assertSafeRelativePath(value, path) {
   assertNonEmptyString(value, path);
   if (value.startsWith("/") || value.includes("..") || !value.endsWith(".json")) {
@@ -67,6 +77,10 @@ export function validateLesson(lesson, sourcePath = "lesson") {
   assertPlainObject(lesson, sourcePath);
   assertNonEmptyString(lesson.id, `${sourcePath}.id`);
   assertNonEmptyString(lesson.title, `${sourcePath}.title`);
+  assertOptionalNonEmptyString(lesson.overview, `${sourcePath}.overview`);
+  assertOptionalNonEmptyString(lesson.goal, `${sourcePath}.goal`);
+  assertOptionalNonEmptyString(lesson.hint, `${sourcePath}.hint`);
+  assertOptionalStringArray(lesson.instructions, `${sourcePath}.instructions`);
 
   if (lesson.mode == null) {
     lesson.mode = PRACTICE_MODES.STEP_LESSON;
@@ -135,6 +149,7 @@ function validateChallenge(challenge, path, mode) {
   if (challenge.id != null) assertNonEmptyString(challenge.id, `${path}.id`);
   if (challenge.type != null) assertNonEmptyString(challenge.type, `${path}.type`);
   if (challenge.label != null) assertNonEmptyString(challenge.label, `${path}.label`);
+  assertOptionalNonEmptyString(challenge.hint, `${path}.hint`);
 
   if (mode === PRACTICE_MODES.STEP_LESSON || mode === PRACTICE_MODES.CHORD_DRILL) {
     validateMidiNoteArray(challenge.notes, `${path}.notes`);

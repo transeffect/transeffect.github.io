@@ -4,6 +4,13 @@
   "mode": "intervalDrill",
   "level": "intermediate",
   "description": "Schema-ready drill for perfect fourths and fifths.",
+  "overview": "Perfect fourths and fifths are open, stable intervals used heavily in melodies and harmony.",
+  "goal": "Hear and play the difference between fourths and fifths.",
+  "instructions": [
+    "Play the two highlighted notes in order.",
+    "A fourth sounds slightly closer; a fifth sounds wider and very stable.",
+    "Use the root note label to orient your hand."
+  ],
   "settings": {
     "requireRelease": true
   },

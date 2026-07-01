@@ -4,6 +4,13 @@
   "mode": "intervalDrill",
   "level": "beginner",
   "description": "Schema-ready drill for recognizing and playing small intervals from C.",
+  "overview": "An interval is the distance between two notes. This drill starts each interval on C.",
+  "goal": "Hear and play the difference between a step, a third, and a fourth.",
+  "instructions": [
+    "Play the first note, then the second note.",
+    "Listen to how each distance sounds larger than the last.",
+    "Use the highlighted key as your next target."
+  ],
   "settings": {
     "requireRelease": true
   },

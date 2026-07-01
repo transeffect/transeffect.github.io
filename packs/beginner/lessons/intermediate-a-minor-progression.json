@@ -4,6 +4,13 @@
   "mode": "stepLesson",
   "level": "intermediate",
   "description": "Practice a simple i-iv-V-i progression in A minor.",
+  "overview": "A progression is a planned series of chords. This one begins and returns to A minor.",
+  "goal": "Practice moving between minor-key chord shapes.",
+  "instructions": [
+    "Play each chord as a complete shape.",
+    "Listen for the V chord pulling back toward i.",
+    "Keep your releases clean between chord changes."
+  ],
   "settings": {
     "requireRelease": true
   },

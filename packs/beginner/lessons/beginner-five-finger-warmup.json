@@ -4,6 +4,13 @@
   "mode": "stepLesson",
   "level": "beginner",
   "description": "Build comfort with the C major five-finger position.",
+  "overview": "Five-finger position places one finger on each note from C through G.",
+  "goal": "Connect finger position with the first five white keys of C major.",
+  "instructions": [
+    "Keep your hand relaxed over C, D, E, F, and G.",
+    "Play the highlighted note or note pair.",
+    "Release before the next target appears."
+  ],
   "settings": {
     "requireRelease": true
   },

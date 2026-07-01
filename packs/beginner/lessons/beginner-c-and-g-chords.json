@@ -4,6 +4,13 @@
   "mode": "chordDrill",
   "level": "beginner",
   "description": "Practice simple major triad shapes in root position.",
+  "overview": "Root-position major triads use the 1st, 3rd, and 5th notes above the chord name.",
+  "goal": "Learn the feel of common C, G, and F major chord shapes.",
+  "instructions": [
+    "Press all highlighted chord notes together.",
+    "Hold the shape long enough to hear the chord, then release.",
+    "Notice that each major chord has the same bright quality."
+  ],
   "settings": {
     "requireRelease": true
   },

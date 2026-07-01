@@ -4,11 +4,19 @@
   "mode": "earTraining",
   "level": "intermediate",
   "description": "Schema-ready ear training for hearing authentic and plagal cadences.",
+  "overview": "A cadence is a chord ending. Authentic cadences move V-I; plagal cadences move IV-I.",
+  "goal": "Identify whether a heard cadence is authentic or plagal.",
+  "instructions": [
+    "Press Start, then Play Progression.",
+    "Listen for the chord before the final C major chord.",
+    "Choose authentic for V-I and plagal for IV-I."
+  ],
   "challenges": [
     {
       "id": "authentic-cadence-c",
       "type": "heardProgression",
       "label": "Identify V-I in C",
+      "hint": "Authentic cadences sound like a strong dominant-to-home ending.",
       "prompt": {
         "type": "progression",
         "chords": [
@@ -24,6 +32,7 @@
       "id": "plagal-cadence-c",
       "type": "heardProgression",
       "label": "Identify IV-I in C",
+      "hint": "Plagal cadences have a softer IV-to-home sound, often called the amen cadence.",
       "prompt": {
         "type": "progression",
         "chords": [

@@ -4,6 +4,13 @@
   "mode": "earTraining",
   "level": "beginner",
   "description": "Schema-ready ear training for hearing major and minor triads.",
+  "overview": "Major chords usually sound bright or settled. Minor chords usually sound darker or more serious.",
+  "goal": "Choose whether the played chord is major or minor.",
+  "instructions": [
+    "Press Start, then use Play Chord.",
+    "Listen to the overall quality, not just the individual notes.",
+    "Choose major or minor after the sound is clear."
+  ],
   "challenges": [
     {
       "id": "c-major",

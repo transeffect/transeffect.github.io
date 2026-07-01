@@ -563,6 +563,12 @@ export class LessonEngine {
       stepLabel: this.getStepLabel(),
       awaitingRelease: this.awaitingRelease,
       settings: this.lesson?.settings || {},
+      teaching: this.lesson ? {
+        goal: this.lesson.goal || "",
+        overview: this.lesson.overview || this.lesson.description || "",
+        instructions: Array.isArray(this.lesson.instructions) ? this.lesson.instructions : [],
+        hint: this.getStep()?.hint || this.lesson.hint || ""
+      } : null,
       challenges: this.lesson?.challenges || [],
       currentChallenge: this.getStep(),
       inputIndex: this.inputIndex,

@@ -4,6 +4,13 @@
   "mode": "rhythmDrill",
   "level": "intermediate",
   "description": "Schema-ready rhythm drill for off-beat entries and syncopation.",
+  "overview": "Syncopation means a note starts where your ear may expect a rest or a weaker part of the beat.",
+  "goal": "Learn to wait through rests and enter on off-beat timing.",
+  "instructions": [
+    "Study the gray rest blocks before pressing Start.",
+    "Use Play Example until you can hear where the off-beat note lands.",
+    "Begin Rhythm only when you can anticipate the first played note."
+  ],
   "settings": {
     "tempo": 84,
     "timeSignature": "4/4",
@@ -14,6 +21,7 @@
       "id": "eighth-quarter-eighth",
       "type": "rhythm",
       "label": "Eighth, quarter, eighth, half",
+      "hint": "This pattern begins immediately, then stretches the middle note across a full beat.",
       "rhythm": [
         { "beats": 0.5, "note": 60 },
         { "beats": 1, "note": 60 },
@@ -25,6 +33,7 @@
       "id": "offbeat-pattern",
       "type": "rhythm",
       "label": "Off-beat quarter pattern",
+      "hint": "The first half beat is silent. Wait through the rest, then play on the off-beat.",
       "rhythm": [
         { "beats": 0.5 },
         { "beats": 1, "note": 60 },

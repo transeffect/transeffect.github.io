@@ -96,6 +96,12 @@ Each lesson file uses this shape:
   "id": "c-major-scale",
   "title": "C Major Scale (5 notes)",
   "mode": "stepLesson",
+  "overview": "This short scale walk introduces the first five notes of C major.",
+  "goal": "Build confidence finding adjacent white keys from C to G.",
+  "instructions": [
+    "Start on middle C.",
+    "Play each highlighted note once, then release it."
+  ],
   "settings": {
     "requireRelease": true
   },
@@ -111,11 +117,14 @@ Each lesson file uses this shape:
 Lesson rules:
 - `id` and `title` are required.
 - `mode` is optional and defaults to `stepLesson`.
+- `overview`, `goal`, `instructions`, and `hint` are optional teaching fields shown in the Lesson HUD.
+- `instructions` must be an array of short strings when present.
 - `settings` is optional.
 - `settings.requireRelease` defaults to `false` and must be boolean when present.
 - `steps` is the legacy `stepLesson` format and must be a non-empty array when `challenges` is omitted.
 - `challenges` is the normalized practice-engine format and must be a non-empty array when present.
 - Each step may have a `label`.
+- Each challenge may have a `hint` shown in the Lesson HUD for the current challenge.
 - Each step must have a non-empty `notes` array.
 - Notes must be unique MIDI note integers from `0` to `127`.
 

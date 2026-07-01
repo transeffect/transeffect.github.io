@@ -1,6 +1,13 @@
 {
   "id": "c-major-scale",
   "title": "C Major Scale (5 notes)",
+  "overview": "This short scale walk introduces the first five notes of C major: C, D, E, F, and G.",
+  "goal": "Build confidence finding adjacent white keys from C to G.",
+  "instructions": [
+    "Start on middle C.",
+    "Play each highlighted note once, then release it.",
+    "Listen for the notes rising one step at a time."
+  ],
   "settings": {
     "requireRelease": true
   },

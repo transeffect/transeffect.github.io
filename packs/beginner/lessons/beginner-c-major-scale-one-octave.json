@@ -4,6 +4,13 @@
   "mode": "scaleDrill",
   "level": "beginner",
   "description": "Schema-ready ordered scale drill for one octave of C major.",
+  "overview": "C major uses only white keys from C to the next C.",
+  "goal": "Play the full one-octave C major scale in order.",
+  "instructions": [
+    "Follow the highlighted note sequence.",
+    "Play one note at a time.",
+    "Keep the sound even as you ascend and descend."
+  ],
   "settings": {
     "requireRelease": true
   },

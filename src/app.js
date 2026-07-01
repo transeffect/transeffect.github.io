@@ -27,6 +27,11 @@ const practiceFeedbackEl = document.getElementById("practiceFeedback");
 const practiceSummaryEl = document.getElementById("practiceSummary");
 const practiceTitleEl = document.getElementById("practiceTitle");
 const practiceStepLabelEl = document.getElementById("practiceStepLabel");
+const lessonTeachingEl = document.getElementById("lessonTeaching");
+const lessonGoalEl = document.getElementById("lessonGoal");
+const lessonOverviewEl = document.getElementById("lessonOverview");
+const lessonInstructionsEl = document.getElementById("lessonInstructions");
+const lessonHintEl = document.getElementById("lessonHint");
 const rhythmGuideEl = document.getElementById("rhythmGuide");
 const rhythmGuideMetaEl = document.getElementById("rhythmGuideMeta");
 const rhythmGuideEventsEl = document.getElementById("rhythmGuideEvents");
@@ -198,6 +203,7 @@ function renderAppMode() {
   if (!isLessonMode) {
     renderEarTrainingControls(null);
     renderRhythmGuide(null);
+    renderTeachingNotes(null);
   } else {
     renderLessonStatus(getLessonDisplayStatus());
     renderPracticeStats();
@@ -487,6 +493,7 @@ function createLessonPreviewStatus(lesson) {
     stepLabel: getChallengeLabel(firstChallenge),
     awaitingRelease: false,
     settings: lesson.settings || {},
+    teaching: getTeachingNotes(lesson, firstChallenge),
     challenges,
     currentChallenge: firstChallenge,
     inputIndex: 0,
@@ -524,6 +531,15 @@ function getPreviewFeedback(status) {
   return "Review the first target, then press Start.";
 }
 
+function getTeachingNotes(lesson, challenge) {
+  return {
+    goal: lesson.goal || "",
+    overview: lesson.overview || lesson.description || "",
+    instructions: Array.isArray(lesson.instructions) ? lesson.instructions : [],
+    hint: challenge?.hint || lesson.hint || ""
+  };
+}
+
 function renderPracticeHeader(status) {
   if (!practiceTitleEl || !practiceStepLabelEl) return;
 
@@ -532,6 +548,7 @@ function renderPracticeHeader(status) {
     practiceStepLabelEl.textContent = "Choose a lesson, then press Start.";
     renderEarTrainingControls(null);
     renderRhythmGuide(null);
+    renderTeachingNotes(null);
     return;
   }
 
@@ -552,8 +569,38 @@ function renderPracticeHeader(status) {
   } else {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
   }
+  renderTeachingNotes(status);
   renderEarTrainingControls(status);
   renderRhythmGuide(status);
+}
+
+function renderTeachingNotes(status) {
+  if (!lessonTeachingEl || !lessonGoalEl || !lessonOverviewEl || !lessonInstructionsEl || !lessonHintEl) return;
+
+  const teaching = status?.teaching || getTeachingNotes(getSelectedLesson() || {}, status?.currentChallenge);
+  const instructions = Array.isArray(teaching.instructions) ? teaching.instructions : [];
+  const hasContent = !!(teaching.goal || teaching.overview || teaching.hint || instructions.length);
+  lessonTeachingEl.hidden = !hasContent || appMode !== "lesson";
+
+  if (!hasContent) {
+    lessonGoalEl.textContent = "";
+    lessonOverviewEl.textContent = "";
+    lessonInstructionsEl.innerHTML = "";
+    lessonHintEl.hidden = true;
+    lessonHintEl.textContent = "";
+    return;
+  }
+
+  lessonGoalEl.textContent = teaching.goal ? `Goal: ${teaching.goal}` : "";
+  lessonOverviewEl.textContent = teaching.overview || "";
+  lessonInstructionsEl.innerHTML = "";
+  for (const item of instructions) {
+    const li = document.createElement("li");
+    li.textContent = item;
+    lessonInstructionsEl.appendChild(li);
+  }
+  lessonHintEl.hidden = !teaching.hint;
+  lessonHintEl.textContent = teaching.hint ? `Hint: ${teaching.hint}` : "";
 }
 
 function renderRhythmGuide(status) {

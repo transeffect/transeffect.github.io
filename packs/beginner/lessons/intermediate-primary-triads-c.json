@@ -4,6 +4,13 @@
   "mode": "chordDrill",
   "level": "intermediate",
   "description": "Practice I, IV, V, and vi triads in C major.",
+  "overview": "Primary triads are the main chord shapes used to build many songs in a key.",
+  "goal": "Connect roman numerals with the C major chord family.",
+  "instructions": [
+    "Read the roman numeral and chord name.",
+    "Press all highlighted notes together.",
+    "Notice how I, IV, and V sound stable and directional."
+  ],
   "settings": {
     "requireRelease": true
   },

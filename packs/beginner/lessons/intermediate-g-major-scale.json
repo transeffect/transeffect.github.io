@@ -4,6 +4,13 @@
   "mode": "scaleDrill",
   "level": "intermediate",
   "description": "Schema-ready ordered scale drill for G major.",
+  "overview": "G major is like C major, but it uses F sharp instead of F natural.",
+  "goal": "Play the G major scale and notice the raised seventh note.",
+  "instructions": [
+    "Follow the highlighted sequence carefully.",
+    "Watch for F sharp near the top of the scale.",
+    "Keep the ascending and descending patterns even."
+  ],
   "settings": {
     "requireRelease": true
   },

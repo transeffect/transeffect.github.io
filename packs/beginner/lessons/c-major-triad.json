@@ -1,6 +1,13 @@
 {
   "id": "c-major-triad",
   "title": "C Major Triad",
+  "overview": "A C major triad is built from C, E, and G. This lesson practices the notes first, then the full chord.",
+  "goal": "Recognize and play the C major chord shape.",
+  "instructions": [
+    "Play each chord tone by itself.",
+    "When the full chord appears, press C, E, and G together.",
+    "Release the notes before moving to the next step."
+  ],
   "settings": {
     "requireRelease": true
   },

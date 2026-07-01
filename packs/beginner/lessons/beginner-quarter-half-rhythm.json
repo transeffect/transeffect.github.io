@@ -4,6 +4,13 @@
   "mode": "rhythmDrill",
   "level": "beginner",
   "description": "Schema-ready rhythm drill for quarter notes and half notes.",
+  "overview": "Quarter notes last one beat. Half notes last two beats.",
+  "goal": "Feel the difference between one-beat and two-beat note lengths.",
+  "instructions": [
+    "Use Play Example before starting the drill.",
+    "In the rhythm guide, wider blocks last longer.",
+    "Press Begin Rhythm only when the pattern makes sense."
+  ],
   "settings": {
     "tempo": 72,
     "timeSignature": "4/4",
