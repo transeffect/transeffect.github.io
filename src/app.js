@@ -1,4 +1,5 @@
 import { AudioEngine } from "./audio-engine.js";
+import { midiToName } from "./constants.js";
 import { setupInputHandlers } from "./input.js";
 import { LessonEngine } from "./lesson-engine.js";
 import { loadLesson, loadLessonPack } from "./lesson-loader.js";
@@ -26,6 +27,9 @@ const practiceFeedbackEl = document.getElementById("practiceFeedback");
 const practiceSummaryEl = document.getElementById("practiceSummary");
 const practiceTitleEl = document.getElementById("practiceTitle");
 const practiceStepLabelEl = document.getElementById("practiceStepLabel");
+const rhythmGuideEl = document.getElementById("rhythmGuide");
+const rhythmGuideMetaEl = document.getElementById("rhythmGuideMeta");
+const rhythmGuideEventsEl = document.getElementById("rhythmGuideEvents");
 const earTrainingControlsEl = document.getElementById("earTrainingControls");
 const earChoicesEl = document.getElementById("earChoices");
 const playPromptBtn = document.getElementById("btnPlayPrompt");
@@ -143,6 +147,8 @@ function renderPracticeStats() {
   ) {
     practiceFeedbackEl.textContent = "Press Start when you are ready.";
   }
+
+  renderRhythmGuide(status);
 }
 
 function setAppMode(nextMode) {
@@ -168,6 +174,7 @@ function renderAppMode() {
 
   if (!isLessonMode) {
     renderEarTrainingControls(null);
+    renderRhythmGuide(null);
   } else {
     renderLessonStatus(lessonEngine.getStatus());
     renderPracticeStats();
@@ -439,6 +446,7 @@ function renderPracticeHeader(status) {
     practiceTitleEl.textContent = "No lesson active";
     practiceStepLabelEl.textContent = "Choose a lesson, then press Start.";
     renderEarTrainingControls(null);
+    renderRhythmGuide(null);
     return;
   }
 
@@ -454,6 +462,70 @@ function renderPracticeHeader(status) {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
   }
   renderEarTrainingControls(status);
+  renderRhythmGuide(status);
+}
+
+function renderRhythmGuide(status) {
+  if (!rhythmGuideEl || !rhythmGuideMetaEl || !rhythmGuideEventsEl) return;
+
+  const challenge = status?.currentChallenge;
+  const events = Array.isArray(challenge?.rhythm) ? challenge.rhythm : [];
+  const show = appMode === "lesson" && status?.active && status.mode === "rhythmDrill" && events.length > 0;
+  rhythmGuideEl.hidden = !show;
+  rhythmGuideEventsEl.innerHTML = "";
+
+  if (!show) {
+    rhythmGuideMetaEl.textContent = "";
+    return;
+  }
+
+  const activeIndex = status.inputIndex ?? 0;
+  const activeEvent = events[activeIndex];
+  const beatOffset = events
+    .slice(0, activeIndex)
+    .reduce((sum, event) => sum + rhythmBeats(event), 0);
+  const activeLabel = activeEvent?.note == null ? "Rest" : midiToName(activeEvent.note);
+  rhythmGuideMetaEl.textContent = `Current target: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Rests are gray; the bright block is next.`;
+
+  for (let idx = 0; idx < events.length; idx += 1) {
+    const event = events[idx];
+    const beats = rhythmBeats(event);
+    const isRest = event.note == null;
+    const item = document.createElement("div");
+    item.className = `rhythmEvent${isRest ? " rest" : " note"}${idx === activeIndex ? " current" : ""}${idx < activeIndex ? " complete" : ""}`;
+    item.style.flexGrow = String(Math.max(0.5, beats));
+
+    const label = document.createElement("span");
+    label.className = "rhythmEventLabel";
+    label.textContent = isRest ? "Rest" : midiToName(event.note);
+
+    const beatLabel = document.createElement("span");
+    beatLabel.className = "rhythmEventBeats";
+    beatLabel.textContent = formatBeatLength(beats);
+
+    item.append(label, beatLabel);
+    rhythmGuideEventsEl.appendChild(item);
+  }
+}
+
+function rhythmBeats(event) {
+  return typeof event?.beats === "number" && Number.isFinite(event.beats) && event.beats > 0
+    ? event.beats
+    : 1;
+}
+
+function formatBeatLength(beats) {
+  if (beats === 0.5) return "1/2 beat";
+  if (beats === 1) return "1 beat";
+  return `${beats} beats`;
+}
+
+function formatBeatPosition(offset) {
+  const beat = Math.floor(offset) + 1;
+  const fraction = offset - Math.floor(offset);
+  if (fraction === 0) return String(beat);
+  if (fraction === 0.5) return `${beat} + 1/2`;
+  return `${Math.round((offset + 1) * 100) / 100}`;
 }
 
 function renderEarTrainingControls(status) {

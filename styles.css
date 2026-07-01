@@ -399,6 +399,77 @@
   transition: width .18s ease;
 }
 
+.rhythmGuide {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 8px;
+  background: rgba(0,0,0,.14);
+}
+
+.rhythmGuide[hidden] {
+  display: none;
+}
+
+.rhythmGuideMeta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.rhythmGuideEvents {
+  display: flex;
+  gap: 6px;
+  min-height: 56px;
+}
+
+.rhythmEvent {
+  position: relative;
+  min-width: 58px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+}
+
+.rhythmEvent.note {
+  background: rgba(122,162,255,.16);
+  border-color: rgba(122,162,255,.28);
+}
+
+.rhythmEvent.rest {
+  background: rgba(255,255,255,.045);
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.rhythmEvent.current {
+  border-color: rgba(160,255,218,.75);
+  box-shadow: 0 0 0 2px rgba(160,255,218,.2), inset 0 0 18px rgba(160,255,218,.08);
+}
+
+.rhythmEvent.complete {
+  opacity: .48;
+}
+
+.rhythmEventLabel {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.rhythmEventBeats {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.1;
+}
+
 .practiceStats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -513,5 +584,10 @@
 
 	  .practiceStats {
 	    grid-template-columns: repeat(2, minmax(0, 1fr));
+	  }
+
+	  .rhythmGuideEvents {
+	    overflow-x: auto;
+	    padding-bottom: 2px;
 	  }
 }
