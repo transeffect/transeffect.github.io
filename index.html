@@ -291,7 +291,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.1.001
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.1.002
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -398,11 +398,11 @@ async function loadLesson(packId, lessonFile) {
       const v = Math.max(0.01, Math.min(1, velocity));
       const vCurve = Math.pow(v, 0.75);
 
-// Stereo panning mapped to the currently visible keyboard range
+      // Stereo panning mapped to the currently visible keyboard range
       const span = Math.max(1, VISIBLE_END - VISIBLE_START);
       let pos = (note - VISIBLE_START) / span;     // 0..1-ish across visible keys
       pos = Math.max(0, Math.min(1, pos));         // clamp
-      let pan = (pos * 2 - 1) * 0.55;              // -0.55..+0.55
+      let pan = (pos * 2 - 1) * PAN_BASE * panWidth;
       // Softer notes feel narrower (optional but nice)
       pan *= (0.65 + 0.35 * vCurve);
       pan = Math.max(-1, Math.min(1, pan));
@@ -520,6 +520,8 @@ async function loadLesson(packId, lessonFile) {
       if (!this.ctx) return;
       for (const note of Array.from(this.active.keys())) {
         this._stopVoice(note, 0.08);
+        this.active.delete(note);
+        window.dispatchEvent(new CustomEvent("noteended", { detail: { note } }));
       }
     }
   }
@@ -693,6 +695,11 @@ let panWidth = 1.0;
   
     // If a note was being sustained and is pressed again, it is no longer "pedal-only"
     sustainedNotes.delete(note);
+    const priorTimer = sustainTimers.get(note);
+    if (priorTimer) {
+      clearTimeout(priorTimer);
+      sustainTimers.delete(note);
+    }
   
     pressedNotes.add(note);
     const el = noteToEl.get(note);
@@ -709,6 +716,7 @@ let panWidth = 1.0;
   
     // Key released physically
     pressedNotes.delete(note);
+    lessonEngine.handleNoteOff(note);
   
     const el = noteToEl.get(note);
   
@@ -726,7 +734,6 @@ let panWidth = 1.0;
       sustainTimers.set(
         note,
         setTimeout(() => {
-          sustainedNotes.delete(note);
           sustainTimers.delete(note);
           const keyEl = noteToEl.get(note);
           if (keyEl) keyEl.classList.remove("sustained");
@@ -742,7 +749,6 @@ let panWidth = 1.0;
       el.classList.remove("sustained");
     }
     audio.noteOff(note);
-	lessonEngine.handleNoteOff(note);
   }
 
   function setSustain(next) {
