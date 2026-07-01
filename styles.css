@@ -266,6 +266,58 @@
   font-size:13px;
   line-height:1.35;
 }
+
+.practicePanel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.progressTrack {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+}
+
+.progressFill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--active), var(--active2));
+  transition: width .18s ease;
+}
+
+.practiceStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.practiceStats span {
+  min-width: 0;
+}
+
+.practiceFeedback {
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.practiceSummary {
+  padding: 8px 10px;
+  border: 1px solid rgba(160,255,218,.28);
+  border-radius: 8px;
+  background: rgba(160,255,218,.08);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .key.target{
   outline:3px solid rgba(0,170,255,.95);
   box-shadow:

@@ -1,14 +1,16 @@
 import { midiToName } from "./constants.js";
 
 export class LessonEngine {
-  constructor({ noteToEl, onStatus }) {
+  constructor({ noteToEl, onStatus, onPracticeEvent = () => {} }) {
     this.active = false;
     this.lesson = null;
     this.stepIndex = 0;
     this.held = new Set();
     this.awaitingRelease = false;
+    this.stepStartedAt = 0;
     this.noteToEl = noteToEl;
     this.onStatus = onStatus;
+    this.onPracticeEvent = onPracticeEvent;
   }
 
   start(lesson) {
@@ -16,16 +18,19 @@ export class LessonEngine {
     this.stepIndex = 0;
     this.held.clear();
     this.awaitingRelease = false;
+    this.stepStartedAt = performance.now();
     this.active = true;
     this.refreshTargets();
+    this._emitPractice("lessonstart", this.getStatus());
     this._emitStatus();
   }
 
-  stop() {
+  stop(reason = "stopped") {
     this.active = false;
     this.held.clear();
     this.awaitingRelease = false;
     this.clearTargets();
+    this._emitPractice("lessonstop", { reason, ...this.getStatus() });
     this._emitStatus();
   }
 
@@ -77,10 +82,19 @@ export class LessonEngine {
         el.classList.add("wrong");
         setTimeout(() => el.classList.remove("wrong"), 160);
       }
+      this._emitPractice("wrongnote", {
+        note,
+        stepIndex: this.stepIndex,
+        expectedNotes: want.slice()
+      });
       return;
     }
 
     this.held.add(note);
+    this._emitPractice("correctnote", {
+      note,
+      stepIndex: this.stepIndex
+    });
 
     const allPressed = want.every(n => this.held.has(n));
     if (!allPressed) return;
@@ -91,7 +105,7 @@ export class LessonEngine {
       return;
     }
 
-    this.next();
+    this.completeStep();
   }
 
   handleNoteOff(note) {
@@ -102,7 +116,7 @@ export class LessonEngine {
     if (!step) return;
 
     const releasedRequiredNotes = (step.notes || []).every(n => !this.held.has(n));
-    if (releasedRequiredNotes) this.next();
+    if (releasedRequiredNotes) this.completeStep();
   }
 
   goToStep(idx) {
@@ -111,8 +125,22 @@ export class LessonEngine {
     this.stepIndex = Math.max(0, Math.min(max - 1, idx));
     this.held.clear();
     this.awaitingRelease = false;
+    this.stepStartedAt = performance.now();
     if (this.active) this.refreshTargets();
     this._emitStatus();
+  }
+
+  completeStep() {
+    if (!this.lesson) return;
+    const elapsedMs = Math.max(0, performance.now() - this.stepStartedAt);
+    this._emitPractice("stepcomplete", {
+      stepIndex: this.stepIndex,
+      stepNum: this.stepIndex + 1,
+      total: this.lesson.steps?.length ?? 0,
+      elapsedMs,
+      stepLabel: this.getStepLabel()
+    });
+    this.next();
   }
 
   next() {
@@ -120,7 +148,7 @@ export class LessonEngine {
     const max = this.lesson.steps?.length ?? 0;
     const nextIdx = this.stepIndex + 1;
     if (nextIdx >= max) {
-      this.stop();
+      this.stop("completed");
       return;
     }
     this.goToStep(nextIdx);
@@ -132,6 +160,10 @@ export class LessonEngine {
 
   _emitStatus() {
     this.onStatus(this.getStatus());
+  }
+
+  _emitPractice(type, detail = {}) {
+    this.onPracticeEvent({ type, detail });
   }
 
   getStatus() {

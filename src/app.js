@@ -10,6 +10,13 @@ const velEl = document.getElementById("vel");
 const volEl = document.getElementById("vol");
 const panWidthEl = document.getElementById("panWidth");
 const panTestBtn = document.getElementById("btnPanTest");
+const practiceProgressEl = document.getElementById("practiceProgress");
+const practiceStepsEl = document.getElementById("practiceSteps");
+const practiceAccuracyEl = document.getElementById("practiceAccuracy");
+const practiceStreakEl = document.getElementById("practiceStreak");
+const practiceTimeEl = document.getElementById("practiceTime");
+const practiceFeedbackEl = document.getElementById("practiceFeedback");
+const practiceSummaryEl = document.getElementById("practiceSummary");
 const menuPairs = [
   {
     button: document.getElementById("btnLessonsMenu"),
@@ -38,6 +45,7 @@ let sustainOn = false;
 let audioEnabled = false;
 let playMode = "piano";
 let lessonManifest = null;
+let practiceSession = createEmptyPracticeSession();
 
 const pressedNotes = new Set();
 const noteToEl = new Map();
@@ -49,7 +57,8 @@ const loadedLessons = new Map();
 
 const lessonEngine = new LessonEngine({
   noteToEl,
-  onStatus: renderLessonStatus
+  onStatus: renderLessonStatus,
+  onPracticeEvent: handlePracticeEvent
 });
 
 const audio = new AudioEngine({
@@ -74,6 +83,125 @@ function renderPiano() {
     baseStart: BASE_START,
     octaves: OCTAVES
   });
+}
+
+function createEmptyPracticeSession() {
+  return {
+    active: false,
+    completed: false,
+    lessonTitle: "",
+    totalSteps: 0,
+    completedSteps: 0,
+    correctNotes: 0,
+    wrongNotes: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    startedAt: 0,
+    endedAt: 0,
+    stepTimes: [],
+    lastMessage: "Start a lesson to track progress."
+  };
+}
+
+function formatDuration(ms) {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}m ${String(remaining).padStart(2, "0")}s`;
+}
+
+function practiceElapsedMs() {
+  if (!practiceSession.startedAt) return 0;
+  const end = practiceSession.endedAt || performance.now();
+  return Math.max(0, end - practiceSession.startedAt);
+}
+
+function practiceAccuracy() {
+  const attempts = practiceSession.correctNotes + practiceSession.wrongNotes;
+  if (!attempts) return null;
+  return Math.round((practiceSession.correctNotes / attempts) * 100);
+}
+
+function renderPracticeStats() {
+  const total = practiceSession.totalSteps || 0;
+  const completed = practiceSession.completedSteps || 0;
+  const progress = total ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+  const accuracy = practiceAccuracy();
+
+  if (practiceProgressEl) practiceProgressEl.style.width = `${progress}%`;
+  if (practiceStepsEl) practiceStepsEl.textContent = `Steps ${completed}/${total}`;
+  if (practiceAccuracyEl) practiceAccuracyEl.textContent = `Accuracy ${accuracy == null ? "--" : `${accuracy}%`}`;
+  if (practiceStreakEl) practiceStreakEl.textContent = `Streak ${practiceSession.currentStreak}`;
+  if (practiceTimeEl) practiceTimeEl.textContent = `Time ${formatDuration(practiceElapsedMs())}`;
+  if (practiceFeedbackEl) practiceFeedbackEl.textContent = practiceSession.lastMessage;
+
+  if (practiceSummaryEl) {
+    if (practiceSession.completed) {
+      const avgMs = practiceSession.stepTimes.length
+        ? practiceSession.stepTimes.reduce((sum, ms) => sum + ms, 0) / practiceSession.stepTimes.length
+        : 0;
+      practiceSummaryEl.hidden = false;
+      practiceSummaryEl.textContent = `Complete: ${completed}/${total} steps, ${accuracy == null ? "--" : `${accuracy}%`} accuracy, best streak ${practiceSession.bestStreak}, avg step ${formatDuration(avgMs)}.`;
+    } else {
+      practiceSummaryEl.hidden = true;
+      practiceSummaryEl.textContent = "";
+    }
+  }
+}
+
+function handlePracticeEvent(event) {
+  const { type, detail } = event;
+
+  if (type === "lessonstart") {
+    practiceSession = createEmptyPracticeSession();
+    practiceSession.active = true;
+    practiceSession.lessonTitle = detail.title || "";
+    practiceSession.totalSteps = detail.total || 0;
+    practiceSession.startedAt = performance.now();
+    practiceSession.lastMessage = "Lesson started. Play the highlighted notes.";
+    renderPracticeStats();
+    return;
+  }
+
+  if (type === "correctnote") {
+    if (!practiceSession.active) return;
+    practiceSession.correctNotes += 1;
+    practiceSession.lastMessage = "Correct note.";
+    renderPracticeStats();
+    return;
+  }
+
+  if (type === "wrongnote") {
+    if (!practiceSession.active) return;
+    practiceSession.wrongNotes += 1;
+    practiceSession.currentStreak = 0;
+    practiceSession.lastMessage = "Wrong note. Try the highlighted target.";
+    renderPracticeStats();
+    return;
+  }
+
+  if (type === "stepcomplete") {
+    if (!practiceSession.active) return;
+    practiceSession.completedSteps = Math.max(practiceSession.completedSteps, detail.stepNum || 0);
+    practiceSession.currentStreak += 1;
+    practiceSession.bestStreak = Math.max(practiceSession.bestStreak, practiceSession.currentStreak);
+    practiceSession.stepTimes.push(detail.elapsedMs || 0);
+    practiceSession.lastMessage = `Step ${detail.stepNum}/${detail.total} complete.`;
+    renderPracticeStats();
+    return;
+  }
+
+  if (type === "lessonstop") {
+    if (!practiceSession.active) return;
+    practiceSession.active = false;
+    practiceSession.endedAt = performance.now();
+    practiceSession.completed = detail.reason === "completed";
+    practiceSession.lastMessage = practiceSession.completed
+      ? "Lesson complete."
+      : "Lesson stopped.";
+    renderPracticeStats();
+  }
 }
 
 function closeMenus(exceptPanel = null) {
@@ -474,4 +602,8 @@ window.addEventListener("blur", () => {
 setupMenus();
 setPlayMode("piano");
 renderPiano();
+renderPracticeStats();
+setInterval(() => {
+  if (practiceSession.active) renderPracticeStats();
+}, 1000);
 initLessons();
