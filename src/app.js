@@ -131,6 +131,18 @@ function renderPracticeStats() {
       practiceSummaryEl.textContent = "";
     }
   }
+
+  const status = lessonEngine.getStatus();
+  if (
+    practiceFeedbackEl &&
+    appMode === "lesson" &&
+    !status.active &&
+    status.title &&
+    status.title !== "(none)" &&
+    snapshot.lastMessage === "Start a lesson to track progress."
+  ) {
+    practiceFeedbackEl.textContent = "Press Start when you are ready.";
+  }
 }
 
 function setAppMode(nextMode) {
@@ -425,7 +437,7 @@ function renderPracticeHeader(status) {
 
   if (!status || !status.title || status.title === "(none)") {
     practiceTitleEl.textContent = "No lesson active";
-    practiceStepLabelEl.textContent = "Choose a lesson to begin.";
+    practiceStepLabelEl.textContent = "Choose a lesson, then press Start.";
     renderEarTrainingControls(null);
     return;
   }

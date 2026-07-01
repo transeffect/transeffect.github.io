@@ -64,20 +64,22 @@
     <div class="main">
       <section id="practiceHud" class="practiceHud" aria-label="Practice feedback" hidden>
         <div class="lessonControls">
-          <div class="field">
-            <label for="lessonSelect">Lesson</label>
-            <select id="lessonSelect" aria-label="Select lesson"></select>
+          <div class="lessonPicker">
+            <div class="field">
+              <label for="lessonSelect">Lesson</label>
+              <select id="lessonSelect" aria-label="Select lesson"></select>
+            </div>
+            <div id="lessonStatus" class="statusText">Lesson: (not loaded)</div>
           </div>
-          <div class="buttonRow">
-            <button id="btnLessonStart">Start</button>
+          <div class="buttonRow lessonTransport" aria-label="Lesson controls">
+            <button id="btnLessonStart" class="primaryAction">Start</button>
             <button id="btnLessonStop" disabled>Stop</button>
             <button id="btnLessonPrev" disabled>Prev</button>
             <button id="btnLessonNext" disabled>Next</button>
           </div>
-          <div id="lessonStatus" class="statusText">Lesson: (not loaded)</div>
         </div>
         <div class="hudHeader">
-          <div>
+          <div class="lessonFocus">
             <div id="practiceTitle" class="hudTitle">No lesson active</div>
             <div id="practiceStepLabel" class="hudSubtitle">Choose a lesson to begin.</div>
           </div>
@@ -106,7 +108,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.12.000
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.12.001
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
