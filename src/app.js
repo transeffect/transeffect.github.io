@@ -106,10 +106,15 @@ function renderPracticeStats() {
   const total = snapshot.totalSteps || 0;
   const completed = snapshot.completedSteps || 0;
   const accuracy = snapshot.accuracy;
+  const timing = snapshot.averageTimingErrorMs == null
+    ? null
+    : `${Math.round(snapshot.averageTimingErrorMs)}ms avg`;
 
   if (practiceProgressEl) practiceProgressEl.style.width = `${snapshot.progressPercent}%`;
   if (practiceStepsEl) practiceStepsEl.textContent = `Steps ${completed}/${total}`;
-  if (practiceAccuracyEl) practiceAccuracyEl.textContent = `Accuracy ${accuracy == null ? "--" : `${accuracy}%`}`;
+  if (practiceAccuracyEl) {
+    practiceAccuracyEl.textContent = `Accuracy ${accuracy == null ? "--" : `${accuracy}%`}${timing ? ` / ${timing}` : ""}`;
+  }
   if (practiceStreakEl) practiceStreakEl.textContent = `Streak ${snapshot.currentStreak}`;
   if (practiceTimeEl) practiceTimeEl.textContent = `Time ${formatDuration(snapshot.elapsedMs)}`;
   if (practiceFeedbackEl) practiceFeedbackEl.textContent = snapshot.lastMessage;
@@ -117,7 +122,10 @@ function renderPracticeStats() {
   if (practiceSummaryEl) {
     if (snapshot.completed) {
       practiceSummaryEl.hidden = false;
-      practiceSummaryEl.textContent = `Complete: ${completed}/${total} steps, ${accuracy == null ? "--" : `${accuracy}%`} accuracy, best streak ${snapshot.bestStreak}, avg step ${formatDuration(snapshot.averageStepMs)}.`;
+      const rhythmSummary = snapshot.mode === "rhythmDrill"
+        ? ` Rhythm: ${snapshot.rhythmHits} on time, ${snapshot.rhythmEarly} early, ${snapshot.rhythmLate} late, ${snapshot.rhythmMisses} missed${timing ? `, ${timing}` : ""}.`
+        : "";
+      practiceSummaryEl.textContent = `Complete: ${completed}/${total} steps, ${accuracy == null ? "--" : `${accuracy}%`} accuracy, best streak ${snapshot.bestStreak}, avg step ${formatDuration(snapshot.averageStepMs)}.${rhythmSummary}`;
     } else {
       practiceSummaryEl.hidden = true;
       practiceSummaryEl.textContent = "";
@@ -126,8 +134,25 @@ function renderPracticeStats() {
 }
 
 function handlePracticeEvent(event) {
+  if (event.type === "rhythmbeat") playMetronomeClick(event.detail?.isDownbeat);
   practiceEngine.handleEvent(event);
   renderPracticeStats();
+}
+
+function playMetronomeClick(isDownbeat = false) {
+  if (!audioEnabled || !audio.ctx || !audio.master || audio.ctx.state !== "running") return;
+
+  const now = audio.ctx.currentTime;
+  const osc = audio.ctx.createOscillator();
+  const gain = audio.ctx.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(isDownbeat ? 1320 : 990, now);
+  gain.gain.setValueAtTime(isDownbeat ? 0.18 : 0.11, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+  osc.connect(gain);
+  gain.connect(audio.master);
+  osc.start(now);
+  osc.stop(now + 0.05);
 }
 
 function closeMenus(exceptPanel = null) {

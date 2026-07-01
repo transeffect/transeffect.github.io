@@ -280,7 +280,7 @@ Important optional keys:
 
 ### rhythmDrill
 
-Use `rhythmDrill` for timing and rhythmic accuracy. The current app advances through playable rhythm events and skips rests; strict early/late scoring is future work.
+Use `rhythmDrill` for timing and rhythmic accuracy. Rhythm events are evaluated against a tempo-based clock with count-in beats, metronome ticks, early/late feedback, missed-note detection, and average timing-error scoring.
 
 ```json
 {
@@ -290,7 +290,9 @@ Use `rhythmDrill` for timing and rhythmic accuracy. The current app advances thr
   "settings": {
     "tempo": 80,
     "timeSignature": "4/4",
-    "timingToleranceMs": 120
+    "timingToleranceMs": 120,
+    "countInBeats": 4,
+    "metronome": true
   },
   "challenges": [
     {
@@ -316,6 +318,8 @@ Important optional keys:
 - `settings.tempo`: beats per minute
 - `settings.timeSignature`: display and measure grouping
 - `settings.timingToleranceMs`: acceptable early/late window
+- `settings.countInBeats`: count-in duration before the first playable event; defaults to the top number of `timeSignature`
+- `settings.metronome`: set to `false` to disable rhythm beat ticks and audible clicks
 - `challenges[].rhythm[].note`: MIDI note to play for that event
 
 ### earTraining

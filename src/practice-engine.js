@@ -119,6 +119,58 @@ export class PracticeEngine {
       return this.getSnapshot();
     }
 
+    if (type === "rhythmcountin") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.lastMessage = `Count-in: ${detail.countInBeats || 0} beats at ${detail.tempo || "--"} BPM.`;
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmbeat") {
+      if (!this.session.active) return this.getSnapshot();
+      if (detail.isCountIn) {
+        this.session.lastMessage = `Count-in beat ${Math.abs(detail.beat)}.`;
+      }
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmhit") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.correctNotes += 1;
+      this.session.rhythmHits += 1;
+      this.session.rhythmTimingDeltas.push(detail.deltaMs || 0);
+      this.session.lastMessage = `On time: ${formatSignedMs(detail.deltaMs || 0)}.`;
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmearly") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.wrongNotes += 1;
+      this.session.rhythmEarly += 1;
+      this.session.rhythmTimingDeltas.push(detail.deltaMs || 0);
+      this.session.currentStreak = 0;
+      this.session.lastMessage = `Early: ${formatSignedMs(detail.deltaMs || 0)}.`;
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmlate") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.wrongNotes += 1;
+      this.session.rhythmLate += 1;
+      this.session.rhythmTimingDeltas.push(detail.deltaMs || 0);
+      this.session.currentStreak = 0;
+      this.session.lastMessage = `Late: ${formatSignedMs(detail.deltaMs || 0)}.`;
+      return this.getSnapshot();
+    }
+
+    if (type === "rhythmmiss") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.wrongNotes += 1;
+      this.session.rhythmMisses += 1;
+      this.session.currentStreak = 0;
+      this.session.lastMessage = "Missed note.";
+      return this.getSnapshot();
+    }
+
     if (type === "stepcomplete") {
       if (!this.session.active) return this.getSnapshot();
       this.session.completedSteps = Math.max(this.session.completedSteps, detail.stepNum || 0);
@@ -155,11 +207,15 @@ export class PracticeEngine {
     const averageStepMs = this.session.stepTimes.length
       ? this.session.stepTimes.reduce((sum, ms) => sum + ms, 0) / this.session.stepTimes.length
       : 0;
+    const averageTimingErrorMs = this.session.rhythmTimingDeltas.length
+      ? this.session.rhythmTimingDeltas.reduce((sum, ms) => sum + Math.abs(ms), 0) / this.session.rhythmTimingDeltas.length
+      : null;
 
     return {
       ...this.session,
       attempts,
       accuracy,
+      averageTimingErrorMs,
       averageStepMs,
       elapsedMs,
       progressPercent
@@ -184,6 +240,11 @@ export class PracticeEngine {
       completedSteps: 0,
       correctNotes: 0,
       wrongNotes: 0,
+      rhythmHits: 0,
+      rhythmEarly: 0,
+      rhythmLate: 0,
+      rhythmMisses: 0,
+      rhythmTimingDeltas: [],
       currentStreak: 0,
       bestStreak: 0,
       startedAt: null,
@@ -220,4 +281,10 @@ export function formatDuration(ms) {
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
   return `${minutes}m ${String(remaining).padStart(2, "0")}s`;
+}
+
+export function formatSignedMs(ms) {
+  const rounded = Math.round(ms);
+  if (rounded === 0) return "0ms";
+  return `${rounded > 0 ? "+" : ""}${rounded}ms`;
 }
