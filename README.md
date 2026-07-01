@@ -37,6 +37,15 @@ The first run creates a full backup. Later runs copy only changed or new files a
 - `src/practice-engine.js` owns practice modes, challenge evaluator definitions, and practice-session metrics such as progress, attempts, accuracy, streaks, timing, and summary data.
 - `src/lesson-loader.js` loads and validates lesson packs.
 
+## App Modes
+
+The top toolbar switches between `Free Play` and `Lesson`.
+
+- `Free Play`: hides the lesson HUD and keeps the piano focused on open playing.
+- `Lesson`: shows the lesson HUD with lesson selection, transport controls, feedback, progress, scoring, and mode-specific controls.
+
+Switching back to `Free Play` stops any active lesson so notes are no longer scored.
+
 ## MIDI Support
 
 External MIDI keyboards are supported in browsers that expose the Web MIDI API, such as Chromium-based browsers. GitHub Pages over HTTPS and `localhost` are valid secure contexts for Web MIDI.

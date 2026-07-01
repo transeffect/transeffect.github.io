@@ -18,26 +18,13 @@
       </div>
 
       <div class="controls" aria-label="Main controls">
+        <div class="modeSwitch" aria-label="App mode">
+          <button id="btnFreePlayMode" aria-pressed="true">Free Play</button>
+          <button id="btnLessonMode" aria-pressed="false">Lesson</button>
+        </div>
         <button id="btnAudio" aria-pressed="false">Audio: Off</button>
         <button id="btnMode" aria-pressed="false">Mode: Piano</button>
         <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
-
-        <div class="menu">
-          <button id="btnLessonsMenu" aria-expanded="false" aria-controls="lessonsPopover">Lessons</button>
-          <div id="lessonsPopover" class="popover lessonPopover" hidden>
-            <div class="field">
-              <label for="lessonSelect">Lesson</label>
-              <select id="lessonSelect" aria-label="Select lesson"></select>
-            </div>
-            <div class="buttonRow">
-              <button id="btnLessonStart">Start</button>
-              <button id="btnLessonStop" disabled>Stop</button>
-              <button id="btnLessonPrev" disabled>Prev</button>
-              <button id="btnLessonNext" disabled>Next</button>
-            </div>
-            <div id="lessonStatus" class="statusText">Lesson: (not loaded)</div>
-          </div>
-        </div>
 
         <div class="menu">
           <button id="btnVolumeMenu" aria-expanded="false" aria-controls="volumePopover">Vol</button>
@@ -75,7 +62,20 @@
     </header>
 
     <div class="main">
-      <section class="practiceHud" aria-label="Practice feedback">
+      <section id="practiceHud" class="practiceHud" aria-label="Practice feedback" hidden>
+        <div class="lessonControls">
+          <div class="field">
+            <label for="lessonSelect">Lesson</label>
+            <select id="lessonSelect" aria-label="Select lesson"></select>
+          </div>
+          <div class="buttonRow">
+            <button id="btnLessonStart">Start</button>
+            <button id="btnLessonStop" disabled>Stop</button>
+            <button id="btnLessonPrev" disabled>Prev</button>
+            <button id="btnLessonNext" disabled>Next</button>
+          </div>
+          <div id="lessonStatus" class="statusText">Lesson: (not loaded)</div>
+        </div>
         <div class="hudHeader">
           <div>
             <div id="practiceTitle" class="hudTitle">No lesson active</div>
@@ -106,7 +106,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.11.000
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.12.000
         </div>
         <div id="status">Audio: not enabled</div>
       </div>

@@ -61,6 +61,26 @@
 	      justify-content: flex-end;
 	    }
 
+	    .modeSwitch {
+	      display: inline-flex;
+	      padding: 3px;
+	      border: 1px solid rgba(255,255,255,.14);
+	      border-radius: 999px;
+	      background: rgba(0,0,0,.18);
+	    }
+
+	    .modeSwitch button {
+	      border-color: transparent;
+	      background: transparent;
+	      padding: 7px 10px;
+	    }
+
+	    .modeSwitch button[aria-pressed="true"] {
+	      background: rgba(122,162,255,.24);
+	      border-color: rgba(122,162,255,.42);
+	      color: #fff;
+	    }
+
     button, .pill {
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.14);
@@ -118,10 +138,6 @@
 	      width: 330px;
 	    }
 
-	    .lessonPopover {
-	      width: min(430px, calc(100vw - 40px));
-	    }
-
 	    .field {
 	      display: grid;
 	      gap: 6px;
@@ -173,6 +189,27 @@
 	      border: 1px solid rgba(255,255,255,.1);
 	      border-radius: 10px;
 	      background: rgba(255,255,255,.035);
+	    }
+
+	    .practiceHud[hidden] {
+	      display: none;
+	    }
+
+	    .lessonControls {
+	      display: grid;
+	      grid-template-columns: minmax(220px, 1fr) auto minmax(180px, .75fr);
+	      gap: 10px;
+	      align-items: end;
+	      padding-bottom: 10px;
+	      border-bottom: 1px solid rgba(255,255,255,.08);
+	    }
+
+	    .lessonControls .field {
+	      margin-bottom: 0;
+	    }
+
+	    .lessonControls .statusText {
+	      align-self: center;
 	    }
 
 	    .hudHeader {
@@ -396,10 +433,18 @@
     flex-direction: column;
   }
 
-  .controls {
-    justify-content: flex-start;
-    width: 100%;
-  }
+	  .controls {
+	    justify-content: flex-start;
+	    width: 100%;
+	  }
+
+	  .modeSwitch {
+	    width: 100%;
+	  }
+
+	  .modeSwitch button {
+	    flex: 1;
+	  }
 
   .menu {
     position: static;
@@ -413,9 +458,14 @@
     width: auto;
   }
 
-  .hudHeader {
-    grid-template-columns: 1fr;
-  }
+	  .hudHeader {
+	    grid-template-columns: 1fr;
+	  }
+
+	  .lessonControls {
+	    grid-template-columns: 1fr;
+	    align-items: stretch;
+	  }
 
   .practiceStats {
     grid-template-columns: 1fr;

@@ -14,6 +14,9 @@ const panWidthEl = document.getElementById("panWidth");
 const panTestBtn = document.getElementById("btnPanTest");
 const midiToggleBtn = document.getElementById("btnMidi");
 const midiStatusEl = document.getElementById("midiStatus");
+const freePlayModeBtn = document.getElementById("btnFreePlayMode");
+const lessonModeBtn = document.getElementById("btnLessonMode");
+const practiceHudEl = document.getElementById("practiceHud");
 const practiceProgressEl = document.getElementById("practiceProgress");
 const practiceStepsEl = document.getElementById("practiceSteps");
 const practiceAccuracyEl = document.getElementById("practiceAccuracy");
@@ -27,10 +30,6 @@ const earTrainingControlsEl = document.getElementById("earTrainingControls");
 const earChoicesEl = document.getElementById("earChoices");
 const playPromptBtn = document.getElementById("btnPlayPrompt");
 const menuPairs = [
-  {
-    button: document.getElementById("btnLessonsMenu"),
-    panel: document.getElementById("lessonsPopover")
-  },
   {
     button: document.getElementById("btnVolumeMenu"),
     panel: document.getElementById("volumePopover")
@@ -54,6 +53,7 @@ let sustainOn = false;
 let audioEnabled = false;
 let playMode = "piano";
 let lessonManifest = null;
+let appMode = "freePlay";
 
 const pressedNotes = new Set();
 const noteToEl = new Map();
@@ -130,6 +130,35 @@ function renderPracticeStats() {
       practiceSummaryEl.hidden = true;
       practiceSummaryEl.textContent = "";
     }
+  }
+}
+
+function setAppMode(nextMode) {
+  const normalized = nextMode === "lesson" ? "lesson" : "freePlay";
+  if (appMode === normalized) return;
+
+  appMode = normalized;
+  closeMenus();
+
+  if (appMode === "freePlay" && lessonEngine.active) {
+    lessonEngine.stop("modechange");
+  }
+
+  renderAppMode();
+}
+
+function renderAppMode() {
+  const isLessonMode = appMode === "lesson";
+
+  if (practiceHudEl) practiceHudEl.hidden = !isLessonMode;
+  if (freePlayModeBtn) freePlayModeBtn.setAttribute("aria-pressed", String(!isLessonMode));
+  if (lessonModeBtn) lessonModeBtn.setAttribute("aria-pressed", String(isLessonMode));
+
+  if (!isLessonMode) {
+    renderEarTrainingControls(null);
+  } else {
+    renderLessonStatus(lessonEngine.getStatus());
+    renderPracticeStats();
   }
 }
 
@@ -381,10 +410,6 @@ function renderLessonStatus(status) {
     el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
   }
 
-  const lessonBtn = document.getElementById("btnLessonsMenu");
-  if (lessonBtn) {
-    lessonBtn.textContent = status.active ? `Lesson ${status.stepNum}/${status.total}` : "Lessons";
-  }
   renderPracticeHeader(status);
 }
 
@@ -392,8 +417,6 @@ function renderLessonError(message) {
   const el = document.getElementById("lessonStatus");
   if (!el) return;
   el.textContent = `Lesson: ${message}`;
-  const lessonBtn = document.getElementById("btnLessonsMenu");
-  if (lessonBtn) lessonBtn.textContent = "Lessons";
   renderPracticeHeader(null);
 }
 
@@ -412,7 +435,7 @@ function renderPracticeHeader(status) {
     : `${status.title} ready`;
 
   if (!status.active) {
-    practiceStepLabelEl.textContent = "Open Lessons and press Start.";
+    practiceStepLabelEl.textContent = "Choose a lesson and press Start.";
   } else if (status.awaitingRelease) {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: release the target notes.`;
   } else {
@@ -602,6 +625,14 @@ document.getElementById("btnMode").addEventListener("click", () => {
   setPlayMode(playMode === "piano" ? "organ" : "piano");
 });
 
+if (freePlayModeBtn) {
+  freePlayModeBtn.addEventListener("click", () => setAppMode("freePlay"));
+}
+
+if (lessonModeBtn) {
+  lessonModeBtn.addEventListener("click", () => setAppMode("lesson"));
+}
+
 volEl.addEventListener("input", () => {
   audio.setVolume(Number(volEl.value));
 });
@@ -692,6 +723,7 @@ window.addEventListener("blur", () => {
 
 setupMenus();
 setPlayMode("piano");
+renderAppMode();
 renderPiano();
 renderPracticeStats();
 setInterval(() => {
