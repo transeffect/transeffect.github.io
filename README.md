@@ -26,6 +26,16 @@ scripts/backup.sh
 
 The first run creates a full backup. Later runs copy only changed or new files and record deleted files.
 
+## App Structure
+
+- `src/app.js` wires DOM controls, audio, lessons, and practice UI together.
+- `src/audio-engine.js` owns Web Audio note playback.
+- `src/piano-view.js` renders the keyboard.
+- `src/input.js` handles pointer and QWERTY input.
+- `src/lesson-engine.js` owns lesson step matching, target highlighting, and lesson events.
+- `src/practice-engine.js` owns practice-session metrics such as progress, attempts, accuracy, streaks, timing, and summary data.
+- `src/lesson-loader.js` loads and validates lesson packs.
+
 ## Lesson Pack Contract
 
 Lesson packs live under `packs/<packId>/`.

@@ -3,6 +3,7 @@ import { setupInputHandlers } from "./input.js";
 import { LessonEngine } from "./lesson-engine.js";
 import { loadLesson, loadLessonPack } from "./lesson-loader.js";
 import { buildPiano } from "./piano-view.js";
+import { PracticeEngine, formatDuration } from "./practice-engine.js";
 
 const pianoEl = document.getElementById("piano");
 const statusEl = document.getElementById("status");
@@ -45,7 +46,6 @@ let sustainOn = false;
 let audioEnabled = false;
 let playMode = "piano";
 let lessonManifest = null;
-let practiceSession = createEmptyPracticeSession();
 
 const pressedNotes = new Set();
 const noteToEl = new Map();
@@ -54,6 +54,7 @@ const sustainTimers = new Map();
 const pointerToNote = new Map();
 const keyboardHeld = new Set();
 const loadedLessons = new Map();
+const practiceEngine = new PracticeEngine();
 
 const lessonEngine = new LessonEngine({
   noteToEl,
@@ -85,64 +86,23 @@ function renderPiano() {
   });
 }
 
-function createEmptyPracticeSession() {
-  return {
-    active: false,
-    completed: false,
-    lessonTitle: "",
-    totalSteps: 0,
-    completedSteps: 0,
-    correctNotes: 0,
-    wrongNotes: 0,
-    currentStreak: 0,
-    bestStreak: 0,
-    startedAt: 0,
-    endedAt: 0,
-    stepTimes: [],
-    lastMessage: "Start a lesson to track progress."
-  };
-}
-
-function formatDuration(ms) {
-  const seconds = Math.max(0, Math.round(ms / 1000));
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  return `${minutes}m ${String(remaining).padStart(2, "0")}s`;
-}
-
-function practiceElapsedMs() {
-  if (!practiceSession.startedAt) return 0;
-  const end = practiceSession.endedAt || performance.now();
-  return Math.max(0, end - practiceSession.startedAt);
-}
-
-function practiceAccuracy() {
-  const attempts = practiceSession.correctNotes + practiceSession.wrongNotes;
-  if (!attempts) return null;
-  return Math.round((practiceSession.correctNotes / attempts) * 100);
-}
-
 function renderPracticeStats() {
-  const total = practiceSession.totalSteps || 0;
-  const completed = practiceSession.completedSteps || 0;
-  const progress = total ? Math.min(100, Math.round((completed / total) * 100)) : 0;
-  const accuracy = practiceAccuracy();
+  const snapshot = practiceEngine.getSnapshot();
+  const total = snapshot.totalSteps || 0;
+  const completed = snapshot.completedSteps || 0;
+  const accuracy = snapshot.accuracy;
 
-  if (practiceProgressEl) practiceProgressEl.style.width = `${progress}%`;
+  if (practiceProgressEl) practiceProgressEl.style.width = `${snapshot.progressPercent}%`;
   if (practiceStepsEl) practiceStepsEl.textContent = `Steps ${completed}/${total}`;
   if (practiceAccuracyEl) practiceAccuracyEl.textContent = `Accuracy ${accuracy == null ? "--" : `${accuracy}%`}`;
-  if (practiceStreakEl) practiceStreakEl.textContent = `Streak ${practiceSession.currentStreak}`;
-  if (practiceTimeEl) practiceTimeEl.textContent = `Time ${formatDuration(practiceElapsedMs())}`;
-  if (practiceFeedbackEl) practiceFeedbackEl.textContent = practiceSession.lastMessage;
+  if (practiceStreakEl) practiceStreakEl.textContent = `Streak ${snapshot.currentStreak}`;
+  if (practiceTimeEl) practiceTimeEl.textContent = `Time ${formatDuration(snapshot.elapsedMs)}`;
+  if (practiceFeedbackEl) practiceFeedbackEl.textContent = snapshot.lastMessage;
 
   if (practiceSummaryEl) {
-    if (practiceSession.completed) {
-      const avgMs = practiceSession.stepTimes.length
-        ? practiceSession.stepTimes.reduce((sum, ms) => sum + ms, 0) / practiceSession.stepTimes.length
-        : 0;
+    if (snapshot.completed) {
       practiceSummaryEl.hidden = false;
-      practiceSummaryEl.textContent = `Complete: ${completed}/${total} steps, ${accuracy == null ? "--" : `${accuracy}%`} accuracy, best streak ${practiceSession.bestStreak}, avg step ${formatDuration(avgMs)}.`;
+      practiceSummaryEl.textContent = `Complete: ${completed}/${total} steps, ${accuracy == null ? "--" : `${accuracy}%`} accuracy, best streak ${snapshot.bestStreak}, avg step ${formatDuration(snapshot.averageStepMs)}.`;
     } else {
       practiceSummaryEl.hidden = true;
       practiceSummaryEl.textContent = "";
@@ -151,57 +111,8 @@ function renderPracticeStats() {
 }
 
 function handlePracticeEvent(event) {
-  const { type, detail } = event;
-
-  if (type === "lessonstart") {
-    practiceSession = createEmptyPracticeSession();
-    practiceSession.active = true;
-    practiceSession.lessonTitle = detail.title || "";
-    practiceSession.totalSteps = detail.total || 0;
-    practiceSession.startedAt = performance.now();
-    practiceSession.lastMessage = "Lesson started. Play the highlighted notes.";
-    renderPracticeStats();
-    return;
-  }
-
-  if (type === "correctnote") {
-    if (!practiceSession.active) return;
-    practiceSession.correctNotes += 1;
-    practiceSession.lastMessage = "Correct note.";
-    renderPracticeStats();
-    return;
-  }
-
-  if (type === "wrongnote") {
-    if (!practiceSession.active) return;
-    practiceSession.wrongNotes += 1;
-    practiceSession.currentStreak = 0;
-    practiceSession.lastMessage = "Wrong note. Try the highlighted target.";
-    renderPracticeStats();
-    return;
-  }
-
-  if (type === "stepcomplete") {
-    if (!practiceSession.active) return;
-    practiceSession.completedSteps = Math.max(practiceSession.completedSteps, detail.stepNum || 0);
-    practiceSession.currentStreak += 1;
-    practiceSession.bestStreak = Math.max(practiceSession.bestStreak, practiceSession.currentStreak);
-    practiceSession.stepTimes.push(detail.elapsedMs || 0);
-    practiceSession.lastMessage = `Step ${detail.stepNum}/${detail.total} complete.`;
-    renderPracticeStats();
-    return;
-  }
-
-  if (type === "lessonstop") {
-    if (!practiceSession.active) return;
-    practiceSession.active = false;
-    practiceSession.endedAt = performance.now();
-    practiceSession.completed = detail.reason === "completed";
-    practiceSession.lastMessage = practiceSession.completed
-      ? "Lesson complete."
-      : "Lesson stopped.";
-    renderPracticeStats();
-  }
+  practiceEngine.handleEvent(event);
+  renderPracticeStats();
 }
 
 function closeMenus(exceptPanel = null) {
@@ -604,6 +515,6 @@ setPlayMode("piano");
 renderPiano();
 renderPracticeStats();
 setInterval(() => {
-  if (practiceSession.active) renderPracticeStats();
+  if (practiceEngine.getSnapshot().active) renderPracticeStats();
 }, 1000);
 initLessons();
