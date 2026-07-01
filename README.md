@@ -363,16 +363,17 @@ Use `earTraining` for heard prompts and user answers. The current app can play n
       }
     },
     {
-      "id": "c-major",
-      "type": "heardChord",
+      "id": "random-major-minor-quality",
+      "type": "generatedEarTraining",
       "label": "Listen and choose the chord quality",
-      "prompt": {
-        "type": "chord",
-        "notes": [60, 64, 67],
+      "generator": {
+        "kind": "chordQuality",
+        "count": 6,
+        "roots": [48, 50, 52, 53, 55, 57, 60],
+        "qualities": ["major", "minor"],
+        "choices": ["major", "minor"],
         "playStyle": "blocked"
-      },
-      "answer": "major",
-      "choices": ["major", "minor"]
+      }
     }
   ]
 }
@@ -385,6 +386,10 @@ Required keys:
 
 Important optional keys:
 - `challenges[].scored`: set to `false` for unscored teaching prompts with Play/Continue controls
+- `challenges[].type`: use `generatedEarTraining` with `generator.kind: "chordQuality"` to create randomized quiz prompts each time the lesson starts
+- `challenges[].generator.count`: number of generated prompts
+- `challenges[].generator.roots`: MIDI root notes available to the generator
+- `challenges[].generator.qualities`: currently supports `major` and `minor`
 - `challenges[].choices`: answer choices for multiple-choice flows
 - `challenges[].prompt.notes`: MIDI notes to play
 - `challenges[].prompt.playStyle`: `blocked`, `arpeggiated`, or `melodic`

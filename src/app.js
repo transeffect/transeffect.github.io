@@ -1,4 +1,5 @@
 import { AudioEngine } from "./audio-engine.js";
+import { expandGeneratedChallenges } from "./challenge-generators.js";
 import { midiToName } from "./constants.js";
 import { setupInputHandlers } from "./input.js";
 import { LessonEngine } from "./lesson-engine.js";
@@ -480,7 +481,7 @@ function getLessonDisplayStatus() {
 }
 
 function createLessonPreviewStatus(lesson) {
-  const challenges = lesson.challenges || lesson.steps || [];
+  const challenges = getPreviewChallenges(lesson);
   const firstChallenge = challenges[0] || null;
   return {
     active: false,
@@ -500,6 +501,21 @@ function createLessonPreviewStatus(lesson) {
     rhythmReady: false,
     rhythm: null
   };
+}
+
+function getPreviewChallenges(lesson) {
+  const challenges = lesson.challenges || lesson.steps || [];
+  return challenges.flatMap((challenge, idx) => {
+    if (challenge.type !== "generatedEarTraining") return [challenge];
+    return [{
+      id: challenge.id || `generated-preview-${idx + 1}`,
+      type: "heardChord",
+      label: challenge.label || "Listen and choose the chord quality",
+      hint: challenge.hint || "Generated quiz questions will be created when you press Start.",
+      prompt: { type: "chord" },
+      choices: challenge.generator?.choices || challenge.generator?.qualities || []
+    }];
+  });
 }
 
 function getChallengeLabel(challenge) {
@@ -906,7 +922,7 @@ async function initLessons() {
         setLessonControlsEnabled(true);
         if (lessonEngine.active) {
           const l = getSelectedLesson();
-          if (l) lessonEngine.start(l);
+          if (l) lessonEngine.start(expandGeneratedChallenges(l));
         } else {
           renderLessonStatus(getLessonDisplayStatus());
           renderPracticeStats();
@@ -920,7 +936,7 @@ async function initLessons() {
 
     document.getElementById("btnLessonStart").addEventListener("click", () => {
       const l = getSelectedLesson();
-      if (l) lessonEngine.start(l);
+      if (l) lessonEngine.start(expandGeneratedChallenges(l));
     });
 
     document.getElementById("btnLessonStop").addEventListener("click", () => {

@@ -39,43 +39,18 @@
       }
     },
     {
-      "id": "quiz-c-major-quality",
-      "type": "heardChord",
+      "id": "random-major-minor-quality",
+      "type": "generatedEarTraining",
       "label": "Listen and choose the chord quality",
       "hint": "Do not worry about the chord name yet. Decide whether the overall quality is major or minor.",
-      "prompt": {
-        "type": "chord",
-        "notes": [60, 64, 67],
+      "generator": {
+        "kind": "chordQuality",
+        "count": 6,
+        "roots": [48, 50, 52, 53, 55, 57, 60, 62, 64, 65, 67],
+        "qualities": ["major", "minor"],
+        "choices": ["major", "minor"],
         "playStyle": "blocked"
-      },
-      "answer": "major",
-      "choices": ["major", "minor"]
-    },
-    {
-      "id": "quiz-a-minor-quality",
-      "type": "heardChord",
-      "label": "Listen and choose the chord quality",
-      "hint": "Compare this sound to the major example you heard earlier.",
-      "prompt": {
-        "type": "chord",
-        "notes": [57, 60, 64],
-        "playStyle": "blocked"
-      },
-      "answer": "minor",
-      "choices": ["major", "minor"]
-    },
-    {
-      "id": "quiz-g-major-quality",
-      "type": "heardChord",
-      "label": "Listen and choose the chord quality",
-      "hint": "This uses a different root, so focus on quality instead of pitch height.",
-      "prompt": {
-        "type": "chord",
-        "notes": [67, 71, 74],
-        "playStyle": "blocked"
-      },
-      "answer": "major",
-      "choices": ["major", "minor"]
+      }
     }
   ]
 }

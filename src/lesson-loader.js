@@ -35,6 +35,12 @@ function assertMidiNote(value, path) {
   }
 }
 
+function assertOptionalBoolean(value, path) {
+  if (value != null && typeof value !== "boolean") {
+    throw new Error(`${path} must be a boolean`);
+  }
+}
+
 export async function loadLessonPack(packId) {
   const url = `./packs/${packId}/manifest.json`;
   const res = await fetch(url, { cache: "no-store" });
@@ -176,16 +182,52 @@ function validateChallenge(challenge, path, mode) {
   }
 
   if (mode === PRACTICE_MODES.EAR_TRAINING) {
+    if (challenge.type === "generatedEarTraining") {
+      validateGeneratedEarTrainingChallenge(challenge, path);
+      return;
+    }
+
     if (challenge.prompt == null) throw new Error(`${path}.prompt is required`);
     assertPlainObject(challenge.prompt, `${path}.prompt`);
     assertNonEmptyString(challenge.prompt.type, `${path}.prompt.type`);
-    if (challenge.scored != null && typeof challenge.scored !== "boolean") {
-      throw new Error(`${path}.scored must be a boolean`);
-    }
+    assertOptionalBoolean(challenge.scored, `${path}.scored`);
     if (challenge.scored !== false && challenge.answer == null) {
       throw new Error(`${path}.answer is required`);
     }
   }
+}
+
+function validateGeneratedEarTrainingChallenge(challenge, path) {
+  assertPlainObject(challenge.generator, `${path}.generator`);
+  assertNonEmptyString(challenge.generator.kind, `${path}.generator.kind`);
+  if (challenge.generator.kind !== "chordQuality") {
+    throw new Error(`${path}.generator.kind must be "chordQuality"`);
+  }
+
+  if (!Number.isInteger(challenge.generator.count) || challenge.generator.count <= 0) {
+    throw new Error(`${path}.generator.count must be a positive integer`);
+  }
+
+  validateMidiNoteArray(challenge.generator.roots, `${path}.generator.roots`);
+  assertStringOptions(challenge.generator.qualities, `${path}.generator.qualities`, ["major", "minor"]);
+  if (challenge.generator.choices != null) {
+    assertStringOptions(challenge.generator.choices, `${path}.generator.choices`, ["major", "minor"]);
+  }
+  if (challenge.generator.playStyle != null) {
+    assertNonEmptyString(challenge.generator.playStyle, `${path}.generator.playStyle`);
+  }
+}
+
+function assertStringOptions(values, path, allowed) {
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new Error(`${path} must be a non-empty array`);
+  }
+  values.forEach((value, idx) => {
+    assertNonEmptyString(value, `${path}[${idx}]`);
+    if (!allowed.includes(value)) {
+      throw new Error(`${path}[${idx}] must be one of: ${allowed.join(", ")}`);
+    }
+  });
 }
 
 function validateMidiNoteArray(notes, path) {
