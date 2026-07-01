@@ -41,7 +41,7 @@ export class LessonEngine {
 
   getStep() {
     if (!this.lesson) return null;
-    return this.lesson.steps?.[this.stepIndex] ?? null;
+    return this.lesson.steps?.[this.stepIndex] ?? this.lesson.challenges?.[this.stepIndex] ?? null;
   }
 
   getStepLabel() {
@@ -121,7 +121,7 @@ export class LessonEngine {
 
   goToStep(idx) {
     if (!this.lesson) return;
-    const max = this.lesson.steps?.length ?? 0;
+    const max = this.getStepCount();
     this.stepIndex = Math.max(0, Math.min(max - 1, idx));
     this.held.clear();
     this.awaitingRelease = false;
@@ -136,7 +136,7 @@ export class LessonEngine {
     this._emitPractice("stepcomplete", {
       stepIndex: this.stepIndex,
       stepNum: this.stepIndex + 1,
-      total: this.lesson.steps?.length ?? 0,
+      total: this.getStepCount(),
       elapsedMs,
       stepLabel: this.getStepLabel()
     });
@@ -145,7 +145,7 @@ export class LessonEngine {
 
   next() {
     if (!this.lesson) return;
-    const max = this.lesson.steps?.length ?? 0;
+    const max = this.getStepCount();
     const nextIdx = this.stepIndex + 1;
     if (nextIdx >= max) {
       this.stop("completed");
@@ -166,18 +166,24 @@ export class LessonEngine {
     this.onPracticeEvent({ type, detail });
   }
 
+  getStepCount() {
+    return this.lesson?.steps?.length ?? this.lesson?.challenges?.length ?? 0;
+  }
+
   getStatus() {
     const title = this.lesson?.title || "(none)";
-    const total = this.lesson?.steps?.length ?? 0;
+    const total = this.getStepCount();
     const stepNum = total ? (this.stepIndex + 1) : 0;
     return {
       active: this.active,
+      mode: this.lesson?.mode || "stepLesson",
       title,
       stepIndex: this.stepIndex,
       stepNum,
       total,
       stepLabel: this.getStepLabel(),
-      awaitingRelease: this.awaitingRelease
+      awaitingRelease: this.awaitingRelease,
+      challenges: this.lesson?.challenges || []
     };
   }
 }

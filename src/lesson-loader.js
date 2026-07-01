@@ -1,3 +1,5 @@
+import { PRACTICE_MODES, isSupportedPracticeMode } from "./practice-engine.js";
+
 function assertPlainObject(value, path) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${path} must be an object`);
@@ -66,6 +68,12 @@ export function validateLesson(lesson, sourcePath = "lesson") {
   assertNonEmptyString(lesson.id, `${sourcePath}.id`);
   assertNonEmptyString(lesson.title, `${sourcePath}.title`);
 
+  if (lesson.mode == null) {
+    lesson.mode = PRACTICE_MODES.STEP_LESSON;
+  } else if (!isSupportedPracticeMode(lesson.mode)) {
+    throw new Error(`${sourcePath}.mode must be a supported practice mode`);
+  }
+
   if (lesson.settings == null) {
     lesson.settings = {};
   } else {
@@ -78,25 +86,97 @@ export function validateLesson(lesson, sourcePath = "lesson") {
     throw new Error(`${sourcePath}.settings.requireRelease must be a boolean`);
   }
 
-  if (!Array.isArray(lesson.steps) || lesson.steps.length === 0) {
-    throw new Error(`${sourcePath}.steps must be a non-empty array`);
+  if (lesson.steps != null && !Array.isArray(lesson.steps)) {
+    throw new Error(`${sourcePath}.steps must be an array when present`);
   }
 
-  lesson.steps.forEach((step, idx) => {
-    const path = `${sourcePath}.steps[${idx}]`;
-    assertPlainObject(step, path);
-    if (step.label != null) assertNonEmptyString(step.label, `${path}.label`);
-    if (!Array.isArray(step.notes) || step.notes.length === 0) {
-      throw new Error(`${path}.notes must be a non-empty array`);
-    }
+  if (lesson.challenges != null && !Array.isArray(lesson.challenges)) {
+    throw new Error(`${sourcePath}.challenges must be an array when present`);
+  }
 
-    const notes = new Set();
-    step.notes.forEach((note, noteIdx) => {
-      assertMidiNote(note, `${path}.notes[${noteIdx}]`);
-      if (notes.has(note)) throw new Error(`${path}.notes must not contain duplicates`);
-      notes.add(note);
-    });
+  if (lesson.mode === PRACTICE_MODES.STEP_LESSON && lesson.challenges == null) {
+    if (!Array.isArray(lesson.steps) || lesson.steps.length === 0) {
+      throw new Error(`${sourcePath}.steps must be a non-empty array`);
+    }
+    lesson.challenges = lesson.steps.map((step, idx) => ({
+      id: step.id || `step-${idx + 1}`,
+      type: "noteSet",
+      label: step.label,
+      notes: step.notes
+    }));
+  }
+
+  if (!Array.isArray(lesson.challenges) || lesson.challenges.length === 0) {
+    throw new Error(`${sourcePath}.challenges must be a non-empty array`);
+  }
+
+  lesson.challenges.forEach((challenge, idx) => {
+    validateChallenge(challenge, `${sourcePath}.challenges[${idx}]`, lesson.mode);
   });
 
+  if (lesson.steps != null) {
+    lesson.steps.forEach((step, idx) => {
+      validateStep(step, `${sourcePath}.steps[${idx}]`);
+    });
+  }
+
   return lesson;
+}
+
+function validateStep(step, path) {
+  assertPlainObject(step, path);
+  if (step.id != null) assertNonEmptyString(step.id, `${path}.id`);
+  if (step.label != null) assertNonEmptyString(step.label, `${path}.label`);
+  validateMidiNoteArray(step.notes, `${path}.notes`);
+}
+
+function validateChallenge(challenge, path, mode) {
+  assertPlainObject(challenge, path);
+  if (challenge.id != null) assertNonEmptyString(challenge.id, `${path}.id`);
+  if (challenge.type != null) assertNonEmptyString(challenge.type, `${path}.type`);
+  if (challenge.label != null) assertNonEmptyString(challenge.label, `${path}.label`);
+
+  if (mode === PRACTICE_MODES.STEP_LESSON || mode === PRACTICE_MODES.CHORD_DRILL) {
+    validateMidiNoteArray(challenge.notes, `${path}.notes`);
+    return;
+  }
+
+  if (mode === PRACTICE_MODES.SCALE_DRILL || mode === PRACTICE_MODES.INTERVAL_DRILL) {
+    validateMidiNoteArray(challenge.sequence, `${path}.sequence`);
+    return;
+  }
+
+  if (mode === PRACTICE_MODES.RHYTHM_DRILL) {
+    if (!Array.isArray(challenge.rhythm) || challenge.rhythm.length === 0) {
+      throw new Error(`${path}.rhythm must be a non-empty array`);
+    }
+    challenge.rhythm.forEach((event, idx) => {
+      assertPlainObject(event, `${path}.rhythm[${idx}]`);
+      if (typeof event.beats !== "number" || event.beats <= 0) {
+        throw new Error(`${path}.rhythm[${idx}].beats must be a positive number`);
+      }
+      if (event.note != null) assertMidiNote(event.note, `${path}.rhythm[${idx}].note`);
+    });
+    return;
+  }
+
+  if (mode === PRACTICE_MODES.EAR_TRAINING) {
+    if (challenge.prompt == null) throw new Error(`${path}.prompt is required`);
+    assertPlainObject(challenge.prompt, `${path}.prompt`);
+    assertNonEmptyString(challenge.prompt.type, `${path}.prompt.type`);
+    if (challenge.answer == null) throw new Error(`${path}.answer is required`);
+  }
+}
+
+function validateMidiNoteArray(notes, path) {
+  if (!Array.isArray(notes) || notes.length === 0) {
+    throw new Error(`${path} must be a non-empty array`);
+  }
+
+  const seen = new Set();
+  notes.forEach((note, noteIdx) => {
+    assertMidiNote(note, `${path}[${noteIdx}]`);
+    if (seen.has(note)) throw new Error(`${path} must not contain duplicates`);
+    seen.add(note);
+  });
 }

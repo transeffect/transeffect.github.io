@@ -1,3 +1,71 @@
+export const PRACTICE_MODES = Object.freeze({
+  STEP_LESSON: "stepLesson",
+  CHORD_DRILL: "chordDrill",
+  SCALE_DRILL: "scaleDrill",
+  INTERVAL_DRILL: "intervalDrill",
+  RHYTHM_DRILL: "rhythmDrill",
+  EAR_TRAINING: "earTraining"
+});
+
+const MODE_LABELS = Object.freeze({
+  [PRACTICE_MODES.STEP_LESSON]: "Step Lesson",
+  [PRACTICE_MODES.CHORD_DRILL]: "Chord Drill",
+  [PRACTICE_MODES.SCALE_DRILL]: "Scale Drill",
+  [PRACTICE_MODES.INTERVAL_DRILL]: "Interval Drill",
+  [PRACTICE_MODES.RHYTHM_DRILL]: "Rhythm Drill",
+  [PRACTICE_MODES.EAR_TRAINING]: "Ear Training"
+});
+
+const CHALLENGE_EVALUATORS = Object.freeze({
+  [PRACTICE_MODES.STEP_LESSON]: {
+    isCorrectNote({ note, challenge }) {
+      return (challenge.notes || []).includes(note);
+    },
+
+    isComplete({ heldNotes, challenge }) {
+      return (challenge.notes || []).every(note => heldNotes.has(note));
+    }
+  },
+  [PRACTICE_MODES.CHORD_DRILL]: {
+    isCorrectNote({ note, challenge }) {
+      return (challenge.notes || []).includes(note);
+    },
+
+    isComplete({ heldNotes, challenge }) {
+      return (challenge.notes || []).every(note => heldNotes.has(note));
+    }
+  },
+  [PRACTICE_MODES.SCALE_DRILL]: {
+    isCorrectNote({ note, challenge, inputIndex }) {
+      return note === (challenge.sequence || [])[inputIndex];
+    },
+
+    isComplete({ inputIndex, challenge }) {
+      return inputIndex >= (challenge.sequence || []).length;
+    }
+  },
+  [PRACTICE_MODES.INTERVAL_DRILL]: {
+    isCorrectNote({ note, challenge, inputIndex }) {
+      return note === (challenge.sequence || [])[inputIndex];
+    },
+
+    isComplete({ inputIndex, challenge }) {
+      return inputIndex >= (challenge.sequence || []).length;
+    }
+  },
+  [PRACTICE_MODES.RHYTHM_DRILL]: {
+    isCorrectRhythm({ events, challenge }) {
+      const pattern = challenge.rhythm || [];
+      return events.length === pattern.length;
+    }
+  },
+  [PRACTICE_MODES.EAR_TRAINING]: {
+    isCorrectAnswer({ answer, challenge }) {
+      return answer === challenge.answer;
+    }
+  }
+});
+
 export class PracticeEngine {
   constructor({ now = () => performance.now() } = {}) {
     this.now = now;
@@ -9,15 +77,29 @@ export class PracticeEngine {
     return this.getSnapshot();
   }
 
+  startSession({ mode = PRACTICE_MODES.STEP_LESSON, title = "", challenges = [] } = {}) {
+    const normalizedMode = normalizePracticeMode(mode);
+    this.session = this._createSession();
+    this.session.active = true;
+    this.session.mode = normalizedMode;
+    this.session.modeLabel = getPracticeModeLabel(normalizedMode);
+    this.session.lessonTitle = title;
+    this.session.totalSteps = challenges.length;
+    this.session.challengeCount = challenges.length;
+    this.session.startedAt = this.now();
+    this.session.lastMessage = `${this.session.modeLabel} started.`;
+    return this.getSnapshot();
+  }
+
   handleEvent(event) {
     const { type, detail = {} } = event;
 
     if (type === "lessonstart") {
-      this.session = this._createSession();
-      this.session.active = true;
-      this.session.lessonTitle = detail.title || "";
-      this.session.totalSteps = detail.total || 0;
-      this.session.startedAt = this.now();
+      this.startSession({
+        mode: detail.mode || PRACTICE_MODES.STEP_LESSON,
+        title: detail.title || "",
+        challenges: detail.challenges || createChallengePlaceholders(detail.total || 0)
+      });
       this.session.lastMessage = "Lesson started. Play the highlighted notes.";
       return this.getSnapshot();
     }
@@ -94,8 +176,11 @@ export class PracticeEngine {
     return {
       active: false,
       completed: false,
+      mode: PRACTICE_MODES.STEP_LESSON,
+      modeLabel: getPracticeModeLabel(PRACTICE_MODES.STEP_LESSON),
       lessonTitle: "",
       totalSteps: 0,
+      challengeCount: 0,
       completedSteps: 0,
       correctNotes: 0,
       wrongNotes: 0,
@@ -107,6 +192,26 @@ export class PracticeEngine {
       lastMessage: "Start a lesson to track progress."
     };
   }
+}
+
+export function getPracticeEvaluator(mode) {
+  return CHALLENGE_EVALUATORS[normalizePracticeMode(mode)];
+}
+
+export function getPracticeModeLabel(mode) {
+  return MODE_LABELS[normalizePracticeMode(mode)];
+}
+
+export function isSupportedPracticeMode(mode) {
+  return Object.values(PRACTICE_MODES).includes(mode);
+}
+
+export function normalizePracticeMode(mode) {
+  return isSupportedPracticeMode(mode) ? mode : PRACTICE_MODES.STEP_LESSON;
+}
+
+function createChallengePlaceholders(total) {
+  return Array.from({ length: total }, (_, idx) => ({ id: `step-${idx + 1}` }));
 }
 
 export function formatDuration(ms) {

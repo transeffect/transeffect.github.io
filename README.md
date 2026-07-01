@@ -32,8 +32,8 @@ The first run creates a full backup. Later runs copy only changed or new files a
 - `src/audio-engine.js` owns Web Audio note playback.
 - `src/piano-view.js` renders the keyboard.
 - `src/input.js` handles pointer and QWERTY input.
-- `src/lesson-engine.js` owns lesson step matching, target highlighting, and lesson events.
-- `src/practice-engine.js` owns practice-session metrics such as progress, attempts, accuracy, streaks, timing, and summary data.
+- `src/lesson-engine.js` owns current lesson step matching, target highlighting, and lesson events.
+- `src/practice-engine.js` owns practice modes, challenge evaluator definitions, and practice-session metrics such as progress, attempts, accuracy, streaks, timing, and summary data.
 - `src/lesson-loader.js` loads and validates lesson packs.
 
 ## Lesson Pack Contract
@@ -71,6 +71,7 @@ Each lesson file uses this shape:
 {
   "id": "c-major-scale",
   "title": "C Major Scale (5 notes)",
+  "mode": "stepLesson",
   "settings": {
     "requireRelease": true
   },
@@ -85,11 +86,255 @@ Each lesson file uses this shape:
 
 Lesson rules:
 - `id` and `title` are required.
+- `mode` is optional and defaults to `stepLesson`.
 - `settings` is optional.
 - `settings.requireRelease` defaults to `false` and must be boolean when present.
-- `steps` must be a non-empty array.
+- `steps` is the legacy `stepLesson` format and must be a non-empty array when `challenges` is omitted.
+- `challenges` is the normalized practice-engine format and must be a non-empty array when present.
 - Each step may have a `label`.
 - Each step must have a non-empty `notes` array.
 - Notes must be unique MIDI note integers from `0` to `127`.
 
 When `requireRelease` is `true`, the player must press all required notes for the current step, then physically release them before the lesson advances.
+
+## Practice Modes
+
+The supported `mode` values are:
+
+- `stepLesson`: A guided sequence of note or chord targets. This is the current implemented lesson mode.
+- `chordDrill`: Repeated chord challenges. Defined in the schema, evaluator stubbed for note-set matching.
+- `scaleDrill`: Ordered note-sequence challenges. Defined in the schema, evaluator stubbed for sequence matching.
+- `intervalDrill`: Ordered two-note or short-sequence challenges. Defined in the schema, evaluator stubbed for sequence matching.
+- `rhythmDrill`: Timed rhythm-event challenges. Schema validation exists; full timing evaluator is future work.
+- `earTraining`: Heard prompt plus answer challenges. Schema validation exists; full prompt playback and answer UI are future work.
+
+The practice engine uses this normalized session shape internally:
+
+```json
+{
+  "mode": "stepLesson",
+  "title": "C Major Scale (5 notes)",
+  "challenges": []
+}
+```
+
+Current legacy `steps` are automatically converted into `stepLesson` challenges:
+
+```json
+{
+  "id": "step-1",
+  "type": "noteSet",
+  "label": "Play C",
+  "notes": [60]
+}
+```
+
+### stepLesson
+
+Use `stepLesson` for guided tutorials where each challenge presents a target note or chord.
+
+```json
+{
+  "id": "c-major-triad",
+  "title": "C Major Triad",
+  "mode": "stepLesson",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "c",
+      "type": "noteSet",
+      "label": "Play C",
+      "notes": [60]
+    },
+    {
+      "id": "c-major",
+      "type": "noteSet",
+      "label": "Play C major chord",
+      "notes": [60, 64, 67]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `stepLesson`
+- `challenges[].notes`: non-empty MIDI note array
+
+Important optional keys:
+- `settings.requireRelease`: require physical release before advancing
+- `challenges[].id`: stable challenge id
+- `challenges[].label`: user-facing instruction
+- `challenges[].type`: currently `noteSet`
+
+### chordDrill
+
+Use `chordDrill` for repeated chord identification or chord-shape practice.
+
+```json
+{
+  "id": "major-triads",
+  "title": "Major Triads",
+  "mode": "chordDrill",
+  "challenges": [
+    {
+      "id": "c-major-root",
+      "type": "chord",
+      "label": "C major root position",
+      "root": 60,
+      "quality": "major",
+      "inversion": 0,
+      "notes": [60, 64, 67]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `chordDrill`
+- `challenges[].notes`: non-empty MIDI note array
+
+Important optional keys:
+- `challenges[].root`: root MIDI note
+- `challenges[].quality`: `major`, `minor`, `diminished`, `augmented`, `dominant7`, etc.
+- `challenges[].inversion`: `0` for root position, `1` for first inversion, etc.
+
+### scaleDrill
+
+Use `scaleDrill` for ordered ascending, descending, or multi-octave scale practice.
+
+```json
+{
+  "id": "c-major-scale-one-octave",
+  "title": "C Major Scale",
+  "mode": "scaleDrill",
+  "challenges": [
+    {
+      "id": "c-major-ascending",
+      "type": "sequence",
+      "label": "C major ascending",
+      "key": "C",
+      "scale": "major",
+      "direction": "ascending",
+      "sequence": [60, 62, 64, 65, 67, 69, 71, 72]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `scaleDrill`
+- `challenges[].sequence`: ordered MIDI note array
+
+Important optional keys:
+- `challenges[].key`: tonic name
+- `challenges[].scale`: `major`, `naturalMinor`, `harmonicMinor`, `melodicMinor`, pentatonic modes, etc.
+- `challenges[].direction`: `ascending`, `descending`, or `both`
+
+### intervalDrill
+
+Use `intervalDrill` for recognizing or playing intervals.
+
+```json
+{
+  "id": "basic-intervals",
+  "title": "Basic Intervals",
+  "mode": "intervalDrill",
+  "challenges": [
+    {
+      "id": "m3-c-eb",
+      "type": "interval",
+      "label": "Minor third from C",
+      "root": 60,
+      "interval": "m3",
+      "sequence": [60, 63]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `intervalDrill`
+- `challenges[].sequence`: ordered MIDI note array
+
+Important optional keys:
+- `challenges[].root`: starting MIDI note
+- `challenges[].interval`: `m2`, `M2`, `m3`, `M3`, `P4`, `tritone`, `P5`, etc.
+- `challenges[].direction`: `up`, `down`, or `harmonic`
+
+### rhythmDrill
+
+Use `rhythmDrill` for timing and rhythmic accuracy. This mode needs a future timing evaluator before it is fully playable.
+
+```json
+{
+  "id": "quarter-half-rhythm",
+  "title": "Quarter and Half Notes",
+  "mode": "rhythmDrill",
+  "settings": {
+    "tempo": 80,
+    "timeSignature": "4/4",
+    "timingToleranceMs": 120
+  },
+  "challenges": [
+    {
+      "id": "q-q-h",
+      "type": "rhythm",
+      "label": "Quarter, quarter, half",
+      "rhythm": [
+        { "beats": 1, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 2, "note": 60 }
+      ]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `rhythmDrill`
+- `challenges[].rhythm`: non-empty array of rhythm events
+- `challenges[].rhythm[].beats`: positive number
+
+Important optional keys:
+- `settings.tempo`: beats per minute
+- `settings.timeSignature`: display and measure grouping
+- `settings.timingToleranceMs`: acceptable early/late window
+- `challenges[].rhythm[].note`: MIDI note to play for that event
+
+### earTraining
+
+Use `earTraining` for heard prompts and user answers. This mode needs future prompt playback and answer UI before it is fully playable.
+
+```json
+{
+  "id": "hear-major-minor",
+  "title": "Hear Major vs Minor",
+  "mode": "earTraining",
+  "challenges": [
+    {
+      "id": "c-major",
+      "type": "heardChord",
+      "label": "Identify the chord quality",
+      "prompt": {
+        "type": "chord",
+        "notes": [60, 64, 67],
+        "playStyle": "blocked"
+      },
+      "answer": "major",
+      "choices": ["major", "minor"]
+    }
+  ]
+}
+```
+
+Required keys:
+- `mode`: `earTraining`
+- `challenges[].prompt`: object with a non-empty `type`
+- `challenges[].answer`: expected answer
+
+Important optional keys:
+- `challenges[].choices`: answer choices for multiple-choice flows
+- `challenges[].prompt.notes`: MIDI notes to play
+- `challenges[].prompt.playStyle`: `blocked`, `arpeggiated`, or `melodic`
