@@ -18,6 +18,8 @@ const practiceStreakEl = document.getElementById("practiceStreak");
 const practiceTimeEl = document.getElementById("practiceTime");
 const practiceFeedbackEl = document.getElementById("practiceFeedback");
 const practiceSummaryEl = document.getElementById("practiceSummary");
+const practiceTitleEl = document.getElementById("practiceTitle");
+const practiceStepLabelEl = document.getElementById("practiceStepLabel");
 const menuPairs = [
   {
     button: document.getElementById("btnLessonsMenu"),
@@ -301,11 +303,13 @@ function renderLessonStatus(status) {
 
   if (!lessonManifest) {
     el.textContent = "Lesson: (pack not loaded)";
+    renderPracticeHeader(null);
     return;
   }
 
   if (!status || !status.title) {
     el.textContent = "Lesson: Ready";
+    renderPracticeHeader(status);
     return;
   }
 
@@ -321,6 +325,7 @@ function renderLessonStatus(status) {
   if (lessonBtn) {
     lessonBtn.textContent = status.active ? `Lesson ${status.stepNum}/${status.total}` : "Lessons";
   }
+  renderPracticeHeader(status);
 }
 
 function renderLessonError(message) {
@@ -329,6 +334,29 @@ function renderLessonError(message) {
   el.textContent = `Lesson: ${message}`;
   const lessonBtn = document.getElementById("btnLessonsMenu");
   if (lessonBtn) lessonBtn.textContent = "Lessons";
+  renderPracticeHeader(null);
+}
+
+function renderPracticeHeader(status) {
+  if (!practiceTitleEl || !practiceStepLabelEl) return;
+
+  if (!status || !status.title || status.title === "(none)") {
+    practiceTitleEl.textContent = "No lesson active";
+    practiceStepLabelEl.textContent = "Choose a lesson to begin.";
+    return;
+  }
+
+  practiceTitleEl.textContent = status.active
+    ? status.title
+    : `${status.title} ready`;
+
+  if (!status.active) {
+    practiceStepLabelEl.textContent = "Open Lessons and press Start.";
+  } else if (status.awaitingRelease) {
+    practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: release the target notes.`;
+  } else {
+    practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
+  }
 }
 
 async function initLessons() {

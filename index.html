@@ -36,19 +36,6 @@
               <button id="btnLessonNext" disabled>Next</button>
             </div>
             <div id="lessonStatus" class="statusText">Lesson: (not loaded)</div>
-            <div class="practicePanel" aria-label="Practice progress">
-              <div class="progressTrack">
-                <div id="practiceProgress" class="progressFill"></div>
-              </div>
-              <div class="practiceStats">
-                <span id="practiceSteps">Steps 0/0</span>
-                <span id="practiceAccuracy">Accuracy --</span>
-                <span id="practiceStreak">Streak 0</span>
-                <span id="practiceTime">Time 0s</span>
-              </div>
-              <div id="practiceFeedback" class="practiceFeedback">Start a lesson to track progress.</div>
-              <div id="practiceSummary" class="practiceSummary" hidden></div>
-            </div>
           </div>
         </div>
 
@@ -84,6 +71,26 @@
     </header>
 
     <div class="main">
+      <section class="practiceHud" aria-label="Practice feedback">
+        <div class="hudHeader">
+          <div>
+            <div id="practiceTitle" class="hudTitle">No lesson active</div>
+            <div id="practiceStepLabel" class="hudSubtitle">Choose a lesson to begin.</div>
+          </div>
+          <div id="practiceFeedback" class="practiceFeedback">Start a lesson to track progress.</div>
+        </div>
+        <div class="progressTrack">
+          <div id="practiceProgress" class="progressFill"></div>
+        </div>
+        <div class="practiceStats">
+          <span id="practiceSteps">Steps 0/0</span>
+          <span id="practiceAccuracy">Accuracy --</span>
+          <span id="practiceStreak">Streak 0</span>
+          <span id="practiceTime">Time 0s</span>
+        </div>
+        <div id="practiceSummary" class="practiceSummary" hidden></div>
+      </section>
+
       <div class="pianoWrap">
         <div id="piano" class="piano" aria-label="On-screen piano"> 	
 </div>
@@ -91,7 +98,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.6.000
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.7.000
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
