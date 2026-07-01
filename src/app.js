@@ -2,6 +2,7 @@ import { AudioEngine } from "./audio-engine.js";
 import { setupInputHandlers } from "./input.js";
 import { LessonEngine } from "./lesson-engine.js";
 import { loadLesson, loadLessonPack } from "./lesson-loader.js";
+import { setupMidiInput } from "./midi-input.js";
 import { buildPiano } from "./piano-view.js";
 import { PracticeEngine, formatDuration } from "./practice-engine.js";
 
@@ -11,6 +12,8 @@ const velEl = document.getElementById("vel");
 const volEl = document.getElementById("vol");
 const panWidthEl = document.getElementById("panWidth");
 const panTestBtn = document.getElementById("btnPanTest");
+const midiToggleBtn = document.getElementById("btnMidi");
+const midiStatusEl = document.getElementById("midiStatus");
 const practiceProgressEl = document.getElementById("practiceProgress");
 const practiceStepsEl = document.getElementById("practiceSteps");
 const practiceAccuracyEl = document.getElementById("practiceAccuracy");
@@ -73,6 +76,13 @@ const audio = new AudioEngine({
   getVisibleRange: () => ({ start: visibleStart, end: visibleEnd }),
   getPanWidth: () => panWidth,
   onNoteEnded: handleNoteEnded
+});
+
+const midiInput = setupMidiInput({
+  onNoteOn: noteOn,
+  onNoteOff: noteOff,
+  getVelocityFallback: () => Number(velEl?.value) || 0.8,
+  onStatusChange: renderMidiStatus
 });
 
 function renderPiano() {
@@ -282,11 +292,33 @@ function setOctaveOffset(next) {
   octaveOffset = Math.max(-3, Math.min(3, next));
   audio.allOff();
   setSustain(false);
+  midiInput.reset();
   pressedNotes.clear();
   pointerToNote.clear();
   keyboardHeld.clear();
   sustainedNotes.clear();
   renderPiano();
+}
+
+function renderMidiStatus(status) {
+  if (midiToggleBtn) {
+    const isOn = !!status.enabled;
+    midiToggleBtn.setAttribute("aria-pressed", String(isOn));
+    midiToggleBtn.textContent = isOn ? "MIDI: On" : "MIDI: Off";
+    midiToggleBtn.disabled = status.state === "unsupported";
+  }
+
+  if (midiStatusEl) {
+    if (status.state === "unsupported") {
+      midiStatusEl.textContent = "MIDI: not supported by this browser";
+    } else if (status.inputNames?.length > 1) {
+      midiStatusEl.textContent = `${status.message}: ${status.inputNames.join(", ")}`;
+    } else if (status.inputNames?.length) {
+      midiStatusEl.textContent = status.message;
+    } else {
+      midiStatusEl.textContent = status.message;
+    }
+  }
 }
 
 function setLessonControlsEnabled(isLoaded) {
@@ -576,6 +608,20 @@ if (panTestBtn) {
   });
 }
 
+if (midiToggleBtn) {
+  midiToggleBtn.addEventListener("click", async () => {
+    try {
+      if (midiInput.isEnabled()) {
+        midiInput.disable();
+      } else {
+        await midiInput.enable();
+      }
+    } catch (err) {
+      console.error("MIDI init failed:", err);
+    }
+  });
+}
+
 if (playPromptBtn) {
   playPromptBtn.addEventListener("click", () => {
     void playCurrentEarPrompt();
@@ -604,6 +650,7 @@ setupInputHandlers({
 window.addEventListener("blur", () => {
   audio.allOff();
   setSustain(false);
+  midiInput.reset();
   for (const tid of sustainTimers.values()) clearTimeout(tid);
   sustainTimers.clear();
   pressedNotes.clear();

@@ -147,6 +147,19 @@
 	      flex-wrap: wrap;
 	      align-items: center;
 	    }
+
+	    .midiRow {
+	      display: grid;
+	      grid-template-columns: auto minmax(0, 1fr);
+	      gap: 10px;
+	      align-items: center;
+	      margin-top: 12px;
+	    }
+
+	    .midiRow .statusText {
+	      min-width: 0;
+	      overflow-wrap: anywhere;
+	    }
 	
 	    .main {
 	      padding: 18px;

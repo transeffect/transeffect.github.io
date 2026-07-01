@@ -1,6 +1,6 @@
 # Piano MVP
 
-A static browser piano trainer. The app renders a two-octave on-screen piano with mouse, touch, and QWERTY input, Web Audio playback, sustain, piano/organ modes, octave shifting, velocity and volume controls, stereo panning, and JSON-driven lessons.
+A static browser piano trainer. The app renders a two-octave on-screen piano with mouse, touch, QWERTY, and Web MIDI input, Web Audio playback, sustain, piano/organ modes, octave shifting, velocity and volume controls, stereo panning, and JSON-driven lessons.
 
 ## Run Locally
 
@@ -32,9 +32,24 @@ The first run creates a full backup. Later runs copy only changed or new files a
 - `src/audio-engine.js` owns Web Audio note playback.
 - `src/piano-view.js` renders the keyboard.
 - `src/input.js` handles pointer and QWERTY input.
+- `src/midi-input.js` handles Web MIDI device permission, device connection changes, and note on/off messages.
 - `src/lesson-engine.js` owns current lesson step matching, target highlighting, and lesson events.
 - `src/practice-engine.js` owns practice modes, challenge evaluator definitions, and practice-session metrics such as progress, attempts, accuracy, streaks, timing, and summary data.
 - `src/lesson-loader.js` loads and validates lesson packs.
+
+## MIDI Support
+
+External MIDI keyboards are supported in browsers that expose the Web MIDI API, such as Chromium-based browsers. GitHub Pages over HTTPS and `localhost` are valid secure contexts for Web MIDI.
+
+Use Settings -> `MIDI: Off` to request MIDI access. When enabled, connected MIDI inputs send note on/off events into the same app path as the on-screen piano:
+
+- Key highlights update on the rendered keyboard.
+- Lesson and practice scoring receives the played MIDI note numbers.
+- Velocity is normalized from MIDI `1..127` to app velocity `0..1`.
+- MIDI `note on` with velocity `0` is treated as `note off`.
+- Device connect/disconnect events update the MIDI status and release held MIDI notes.
+
+The app does not request sysex access. If the browser does not support Web MIDI or the user denies permission, the Settings status reports that MIDI is unavailable or unsupported.
 
 ## Lesson Pack Contract
 
