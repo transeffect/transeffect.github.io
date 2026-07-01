@@ -291,7 +291,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.1.002
+          Mouse/touch: press keys (drag works). Audio requires a click/tap first. Mode: Piano (decay) / Organ (hold). Toggle with button (or O). V.0.2.000
         </div>
         <div id="status">Audio: not enabled</div>
       </div>
@@ -322,19 +322,108 @@
   }
 
   
-async function loadLessonPack(packId) {
-  const url = `./packs/${packId}/manifest.json`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Pack manifest fetch failed ${res.status} ${res.statusText}: ${url}`);
-  return res.json();
-}
+	async function loadLessonPack(packId) {
+	  const url = `./packs/${packId}/manifest.json`;
+	  const res = await fetch(url, { cache: "no-store" });
+	  if (!res.ok) throw new Error(`Pack manifest fetch failed ${res.status} ${res.statusText}: ${url}`);
+	  return validateLessonManifest(await res.json(), packId);
+	}
+	
+	async function loadLesson(packId, lessonFile) {
+	  const url = `./packs/${packId}/${lessonFile}`;
+	  const res = await fetch(url, { cache: "no-store" });
+	  if (!res.ok) throw new Error(`Lesson fetch failed ${res.status} ${res.statusText}: ${url}`);
+	  return validateLesson(await res.json(), lessonFile);
+	}
 
-async function loadLesson(packId, lessonFile) {
-  const url = `./packs/${packId}/${lessonFile}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Lesson fetch failed ${res.status} ${res.statusText}: ${url}`);
-  return res.json();
-}
+  function assertPlainObject(value, path) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`${path} must be an object`);
+    }
+  }
+
+  function assertNonEmptyString(value, path) {
+    if (typeof value !== "string" || value.trim() === "") {
+      throw new Error(`${path} must be a non-empty string`);
+    }
+  }
+
+  function assertSafeRelativePath(value, path) {
+    assertNonEmptyString(value, path);
+    if (value.startsWith("/") || value.includes("..") || !value.endsWith(".json")) {
+      throw new Error(`${path} must be a safe relative JSON path`);
+    }
+  }
+
+  function assertMidiNote(value, path) {
+    if (!Number.isInteger(value) || value < 0 || value > 127) {
+      throw new Error(`${path} must be a MIDI note integer from 0 to 127`);
+    }
+  }
+
+  function validateLessonManifest(manifest, expectedPackId) {
+    assertPlainObject(manifest, "manifest");
+    assertNonEmptyString(manifest.packId, "manifest.packId");
+    if (manifest.packId !== expectedPackId) {
+      throw new Error(`manifest.packId must be "${expectedPackId}"`);
+    }
+    assertNonEmptyString(manifest.title, "manifest.title");
+    if (manifest.version != null) assertNonEmptyString(manifest.version, "manifest.version");
+    if (!Array.isArray(manifest.lessons)) throw new Error("manifest.lessons must be an array");
+
+    const ids = new Set();
+    manifest.lessons.forEach((lesson, idx) => {
+      const path = `manifest.lessons[${idx}]`;
+      assertPlainObject(lesson, path);
+      assertNonEmptyString(lesson.id, `${path}.id`);
+      assertNonEmptyString(lesson.title, `${path}.title`);
+      assertSafeRelativePath(lesson.file, `${path}.file`);
+      if (ids.has(lesson.id)) throw new Error(`${path}.id must be unique`);
+      ids.add(lesson.id);
+    });
+
+    return manifest;
+  }
+
+  function validateLesson(lesson, sourcePath = "lesson") {
+    assertPlainObject(lesson, sourcePath);
+    assertNonEmptyString(lesson.id, `${sourcePath}.id`);
+    assertNonEmptyString(lesson.title, `${sourcePath}.title`);
+
+    if (lesson.settings == null) {
+      lesson.settings = {};
+    } else {
+      assertPlainObject(lesson.settings, `${sourcePath}.settings`);
+    }
+
+    if (lesson.settings.requireRelease == null) {
+      lesson.settings.requireRelease = false;
+    } else if (typeof lesson.settings.requireRelease !== "boolean") {
+      throw new Error(`${sourcePath}.settings.requireRelease must be a boolean`);
+    }
+
+    if (!Array.isArray(lesson.steps) || lesson.steps.length === 0) {
+      throw new Error(`${sourcePath}.steps must be a non-empty array`);
+    }
+
+    lesson.steps.forEach((step, idx) => {
+      const path = `${sourcePath}.steps[${idx}]`;
+      assertPlainObject(step, path);
+      if (step.label != null) assertNonEmptyString(step.label, `${path}.label`);
+      if (!Array.isArray(step.notes) || step.notes.length === 0) {
+        throw new Error(`${path}.notes must be a non-empty array`);
+      }
+
+      const notes = new Set();
+      step.notes.forEach((note, noteIdx) => {
+        assertMidiNote(note, `${path}.notes[${noteIdx}]`);
+        if (notes.has(note)) throw new Error(`${path}.notes must not contain duplicates`);
+        notes.add(note);
+      });
+    });
+
+    return lesson;
+  }
 
 
 
@@ -1092,28 +1181,31 @@ if (panTestBtn) {
 //----------------
 
 class LessonEngine {
-  constructor() {
-    this.active = false;
-    this.lesson = null;
-    this.stepIndex = 0;
-    this.held = new Set();
-  }
+	  constructor() {
+	    this.active = false;
+	    this.lesson = null;
+	    this.stepIndex = 0;
+	    this.held = new Set();
+	    this.awaitingRelease = false;
+	  }
+	
+	  start(lesson) {
+	    this.lesson = lesson;
+	    this.stepIndex = 0;
+	    this.held.clear();
+	    this.awaitingRelease = false;
+	    this.active = true;
+	    this.refreshTargets();
+	    this._emitStatus();
+	  }
 
-  start(lesson) {
-    this.lesson = lesson;
-    this.stepIndex = 0;
-    this.held.clear();
-    this.active = true;
-    this.refreshTargets();
-    this._emitStatus();
-  }
-
-  stop() {
-    this.active = false;
-    this.held.clear();
-    this.clearTargets();
-    this._emitStatus();
-  }
+	  stop() {
+	    this.active = false;
+	    this.held.clear();
+	    this.awaitingRelease = false;
+	    this.clearTargets();
+	    this._emitStatus();
+	  }
 
   refreshTargets() {
     if (!this.active || !this.lesson) return;
@@ -1150,11 +1242,11 @@ class LessonEngine {
     }
   }
 
-  handleNoteOn(note) {
-    if (!this.active || !this.lesson) return;
-
-    const step = this.getStep();
-    if (!step) return;
+	  handleNoteOn(note) {
+	    if (!this.active || !this.lesson) return;
+	
+	    const step = this.getStep();
+	    if (!step || this.awaitingRelease) return;
 
     const want = step.notes || [];
     if (!want.includes(note)) {
@@ -1166,24 +1258,40 @@ class LessonEngine {
       return;
     }
 
-    this.held.add(note);
+	    this.held.add(note);
+	
+	    const allPressed = want.every(n => this.held.has(n));
+	    if (!allPressed) return;
 
-    const allPressed = want.every(n => this.held.has(n));
-    if (allPressed) this.next();
-  }
+	    if (this.lesson.settings?.requireRelease) {
+	      this.awaitingRelease = true;
+	      this._emitStatus();
+	      return;
+	    }
 
-  handleNoteOff(note) {
-    this.held.delete(note);
-  }
+	    this.next();
+	  }
+	
+	  handleNoteOff(note) {
+	    this.held.delete(note);
+	    if (!this.active || !this.lesson || !this.awaitingRelease) return;
+
+	    const step = this.getStep();
+	    if (!step) return;
+
+	    const releasedRequiredNotes = (step.notes || []).every(n => !this.held.has(n));
+	    if (releasedRequiredNotes) this.next();
+	  }
 
   goToStep(idx) {
     if (!this.lesson) return;
-    const max = this.lesson.steps?.length ?? 0;
-    this.stepIndex = Math.max(0, Math.min(max - 1, idx));
-    this.held.clear();
-    if (this.active) this.refreshTargets();
-    this._emitStatus();
-  }
+	    const max = this.lesson.steps?.length ?? 0;
+	    this.stepIndex = Math.max(0, Math.min(max - 1, idx));
+	    this.held.clear();
+	    this.awaitingRelease = false;
+	    if (this.active) this.refreshTargets();
+	    this._emitStatus();
+	  }
 
   next() {
     if (!this.lesson) return;
@@ -1208,16 +1316,17 @@ class LessonEngine {
     const title = this.lesson?.title || "(none)";
     const total = this.lesson?.steps?.length ?? 0;
     const stepNum = total ? (this.stepIndex + 1) : 0;
-    return {
-      active: this.active,
-      title,
-      stepIndex: this.stepIndex,
-      stepNum,
-      total,
-      stepLabel: this.getStepLabel()
-    };
-  }
-}
+	    return {
+	      active: this.active,
+	      title,
+	      stepIndex: this.stepIndex,
+	      stepNum,
+	      total,
+	      stepLabel: this.getStepLabel(),
+	      awaitingRelease: this.awaitingRelease
+	    };
+	  }
+	}
 
 const lessonEngine = new LessonEngine();
 // End Lesson Engine
@@ -1240,9 +1349,9 @@ function setLessonControlsEnabled(isLoaded) {
   nextBtn.disabled = !isLoaded;
 }
 
-function renderLessonStatus(status) {
-  const el = document.getElementById("lessonStatus");
-  if (!el) return;
+	function renderLessonStatus(status) {
+	  const el = document.getElementById("lessonStatus");
+	  if (!el) return;
 
   if (!lessonManifest) {
     el.textContent = "Lesson: (pack not loaded)";
@@ -1254,12 +1363,20 @@ function renderLessonStatus(status) {
     return;
   }
 
-  if (!status.active) {
-    el.textContent = `Lesson: ${status.title} (ready)`;
-  } else {
-    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
-  }
-}
+	  if (!status.active) {
+	    el.textContent = `Lesson: ${status.title} (ready)`;
+	  } else if (status.awaitingRelease) {
+	    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: Release`;
+	  } else {
+	    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
+	  }
+	}
+
+	function renderLessonError(message) {
+	  const el = document.getElementById("lessonStatus");
+	  if (!el) return;
+	  el.textContent = `Lesson: ${message}`;
+	}
 
 window.addEventListener("lessonstatus", (e) => {
   renderLessonStatus(e.detail);
@@ -1292,16 +1409,23 @@ async function initLessons() {
     setLessonControlsEnabled(true);
     renderLessonStatus(lessonEngine.getStatus());
 
-    select.addEventListener("change", async () => {
-      await preloadLessonFromSelect();
-      // If currently active, restart from step 1 with the new lesson
-      if (lessonEngine.active) {
-        const l = getSelectedLesson();
-        if (l) lessonEngine.start(l);
-      } else {
-        renderLessonStatus(lessonEngine.getStatus());
-      }
-    });
+	    select.addEventListener("change", async () => {
+	      try {
+	        await preloadLessonFromSelect();
+	        setLessonControlsEnabled(true);
+	        // If currently active, restart from step 1 with the new lesson
+	        if (lessonEngine.active) {
+	          const l = getSelectedLesson();
+	          if (l) lessonEngine.start(l);
+	        } else {
+	          renderLessonStatus(lessonEngine.getStatus());
+	        }
+	      } catch (err) {
+	        console.error("Lesson load failed:", err);
+	        setLessonControlsEnabled(false);
+	        renderLessonError("failed to load");
+	      }
+	    });
 
     document.getElementById("btnLessonStart").addEventListener("click", () => {
       const l = getSelectedLesson();
@@ -1320,12 +1444,12 @@ async function initLessons() {
       lessonEngine.next();
     });
 
-  } catch (err) {
-    console.error("Lesson init failed:", err);
-    setLessonControlsEnabled(false);
-    renderLessonStatus(null);
-  }
-}
+	  } catch (err) {
+	    console.error("Lesson init failed:", err);
+	    setLessonControlsEnabled(false);
+	    renderLessonError("failed to load");
+	  }
+	}
 
 function getSelectedLessonId() {
   const select = document.getElementById("lessonSelect");
