@@ -31,6 +31,7 @@ const rhythmGuideEl = document.getElementById("rhythmGuide");
 const rhythmGuideMetaEl = document.getElementById("rhythmGuideMeta");
 const rhythmGuideEventsEl = document.getElementById("rhythmGuideEvents");
 const beginRhythmBtn = document.getElementById("btnBeginRhythm");
+const playRhythmExampleBtn = document.getElementById("btnPlayRhythmExample");
 const earTrainingControlsEl = document.getElementById("earTrainingControls");
 const earChoicesEl = document.getElementById("earChoices");
 const playPromptBtn = document.getElementById("btnPlayPrompt");
@@ -68,6 +69,12 @@ const pointerToNote = new Map();
 const keyboardHeld = new Set();
 const loadedLessons = new Map();
 const practiceEngine = new PracticeEngine();
+const rhythmExampleTimers = new Set();
+let rhythmExample = {
+  active: false,
+  stepIndex: null,
+  eventIndex: null
+};
 
 const lessonEngine = new LessonEngine({
   noteToEl,
@@ -140,6 +147,7 @@ function renderPracticeStats() {
   const status = lessonEngine.getStatus();
   if (
     practiceFeedbackEl &&
+    !rhythmExample.active &&
     appMode === "lesson" &&
     !status.active &&
     status.title &&
@@ -147,6 +155,10 @@ function renderPracticeStats() {
     snapshot.lastMessage === "Start a lesson to track progress."
   ) {
     practiceFeedbackEl.textContent = "Press Start when you are ready.";
+  }
+
+  if (practiceFeedbackEl && rhythmExample.active) {
+    practiceFeedbackEl.textContent = "Playing the example. Watch the guide before you try it.";
   }
 
   renderRhythmGuide(status);
@@ -158,6 +170,7 @@ function setAppMode(nextMode) {
 
   appMode = normalized;
   closeMenus();
+  clearRhythmExample();
 
   if (appMode === "freePlay" && lessonEngine.active) {
     lessonEngine.stop("modechange");
@@ -183,6 +196,7 @@ function renderAppMode() {
 }
 
 function handlePracticeEvent(event) {
+  if (event.type === "lessonstop") clearRhythmExample();
   if (event.type === "rhythmbeat") playMetronomeClick(event.detail?.isDownbeat);
   practiceEngine.handleEvent(event);
   renderPracticeStats();
@@ -474,22 +488,33 @@ function renderRhythmGuide(status) {
   const challenge = status?.currentChallenge;
   const events = Array.isArray(challenge?.rhythm) ? challenge.rhythm : [];
   const show = appMode === "lesson" && status?.active && status.mode === "rhythmDrill" && events.length > 0;
+  const exampleActive = rhythmExample.active && rhythmExample.stepIndex === status?.stepIndex;
+  const guideIndex = exampleActive ? rhythmExample.eventIndex : (status?.inputIndex ?? 0);
   rhythmGuideEl.hidden = !show;
   rhythmGuideEventsEl.innerHTML = "";
-  if (beginRhythmBtn) beginRhythmBtn.hidden = !show || !status.rhythmReady;
+  if (beginRhythmBtn) {
+    beginRhythmBtn.hidden = !show || !status.rhythmReady;
+    beginRhythmBtn.disabled = exampleActive;
+  }
+  if (playRhythmExampleBtn) {
+    playRhythmExampleBtn.hidden = !show || !status.rhythmReady;
+    playRhythmExampleBtn.disabled = exampleActive;
+    playRhythmExampleBtn.textContent = exampleActive ? "Playing Example" : "Play Example";
+  }
 
   if (!show) {
     rhythmGuideMetaEl.textContent = "";
     return;
   }
 
-  const activeIndex = status.inputIndex ?? 0;
-  const activeEvent = events[activeIndex];
+  const activeEvent = events[guideIndex];
   const beatOffset = events
-    .slice(0, activeIndex)
+    .slice(0, guideIndex)
     .reduce((sum, event) => sum + rhythmBeats(event), 0);
   const activeLabel = activeEvent?.note == null ? "Rest" : midiToName(activeEvent.note);
-  rhythmGuideMetaEl.textContent = status.rhythmReady
+  rhythmGuideMetaEl.textContent = exampleActive
+    ? `Example: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Watch the blocks and listen for where notes and rests land.`
+    : status.rhythmReady
     ? `Study this rhythm first. Gray blocks are rests. Press Begin Rhythm when you are ready for the count-in.`
     : `Current target: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Rests are gray; the bright block is next.`;
 
@@ -498,7 +523,7 @@ function renderRhythmGuide(status) {
     const beats = rhythmBeats(event);
     const isRest = event.note == null;
     const item = document.createElement("div");
-    item.className = `rhythmEvent${isRest ? " rest" : " note"}${!status.rhythmReady && idx === activeIndex ? " current" : ""}${!status.rhythmReady && idx < activeIndex ? " complete" : ""}`;
+    item.className = `rhythmEvent${isRest ? " rest" : " note"}${idx === guideIndex && (exampleActive || !status.rhythmReady) ? " current" : ""}${!exampleActive && !status.rhythmReady && idx < guideIndex ? " complete" : ""}`;
     item.style.flexGrow = String(Math.max(0.5, beats));
 
     const label = document.createElement("span");
@@ -532,6 +557,104 @@ function formatBeatPosition(offset) {
   if (fraction === 0) return String(beat);
   if (fraction === 0.5) return `${beat} + 1/2`;
   return `${Math.round((offset + 1) * 100) / 100}`;
+}
+
+async function playRhythmExample() {
+  const status = lessonEngine.getStatus();
+  const events = Array.isArray(status.currentChallenge?.rhythm)
+    ? status.currentChallenge.rhythm
+    : [];
+  if (!status.active || status.mode !== "rhythmDrill" || !status.rhythmReady || events.length === 0) return;
+
+  clearRhythmExample();
+
+  try {
+    await setAudioEnabled(true);
+  } catch {
+    return;
+  }
+
+  const settings = status.settings || {};
+  const tempo = positiveNumber(settings.tempo, 80);
+  const msPerBeat = 60000 / tempo;
+  const beatsPerMeasure = getBeatsPerMeasure(settings.timeSignature || "4/4");
+  const countInBeats = Math.max(0, Number.isFinite(settings.countInBeats)
+    ? Number(settings.countInBeats)
+    : beatsPerMeasure);
+  const totalBeats = events.reduce((sum, event) => sum + rhythmBeats(event), 0);
+  const exampleStartDelay = countInBeats * msPerBeat;
+
+  rhythmExample = {
+    active: true,
+    stepIndex: status.stepIndex,
+    eventIndex: null
+  };
+  if (practiceFeedbackEl) {
+    practiceFeedbackEl.textContent = "Playing the example. Watch the guide before you try it.";
+  }
+  renderRhythmGuide(status);
+
+  for (let beat = 0; beat < countInBeats + Math.ceil(totalBeats); beat += 1) {
+    const timer = setTimeout(() => {
+      playMetronomeClick(beat % beatsPerMeasure === 0);
+    }, beat * msPerBeat);
+    rhythmExampleTimers.add(timer);
+  }
+
+  let beatOffset = 0;
+  events.forEach((event, idx) => {
+    const eventDelay = exampleStartDelay + beatOffset * msPerBeat;
+    const highlightTimer = setTimeout(() => {
+      rhythmExample.eventIndex = idx;
+      renderRhythmGuide(lessonEngine.getStatus());
+    }, eventDelay);
+    rhythmExampleTimers.add(highlightTimer);
+
+    if (event.note != null) {
+      const noteTimer = setTimeout(() => {
+        playExampleNote(event.note, Math.min(520, rhythmBeats(event) * msPerBeat * 0.72));
+      }, eventDelay);
+      rhythmExampleTimers.add(noteTimer);
+    }
+
+    beatOffset += rhythmBeats(event);
+  });
+
+  const doneTimer = setTimeout(() => {
+    clearRhythmExample();
+    const nextStatus = lessonEngine.getStatus();
+    renderRhythmGuide(nextStatus);
+    if (practiceFeedbackEl && nextStatus.rhythmReady) {
+      practiceFeedbackEl.textContent = "Example complete. Press Begin Rhythm when you are ready.";
+    }
+  }, exampleStartDelay + totalBeats * msPerBeat + 120);
+  rhythmExampleTimers.add(doneTimer);
+}
+
+function playExampleNote(note, durationMs) {
+  const v = Number(velEl?.value) || 0.8;
+  audio.noteOn(note, v);
+  setTimeout(() => audio.noteOff(note), Math.max(120, durationMs));
+}
+
+function clearRhythmExample() {
+  for (const timer of rhythmExampleTimers) clearTimeout(timer);
+  rhythmExampleTimers.clear();
+  rhythmExample = {
+    active: false,
+    stepIndex: null,
+    eventIndex: null
+  };
+}
+
+function positiveNumber(value, fallback) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function getBeatsPerMeasure(timeSignature) {
+  const match = String(timeSignature).match(/^(\d+)\s*\/\s*\d+$/);
+  if (!match) return 4;
+  return Math.max(1, Number(match[1]) || 4);
 }
 
 function renderEarTrainingControls(status) {
@@ -787,7 +910,14 @@ if (playPromptBtn) {
 
 if (beginRhythmBtn) {
   beginRhythmBtn.addEventListener("click", () => {
+    clearRhythmExample();
     lessonEngine.beginRhythm();
+  });
+}
+
+if (playRhythmExampleBtn) {
+  playRhythmExampleBtn.addEventListener("click", () => {
+    void playRhythmExample();
   });
 }
 
@@ -813,6 +943,7 @@ setupInputHandlers({
 window.addEventListener("blur", () => {
   audio.allOff();
   setSustain(false);
+  clearRhythmExample();
   midiInput.reset();
   for (const tid of sustainTimers.values()) clearTimeout(tid);
   sustainTimers.clear();

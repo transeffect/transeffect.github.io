@@ -562,6 +562,7 @@ export class LessonEngine {
       total,
       stepLabel: this.getStepLabel(),
       awaitingRelease: this.awaitingRelease,
+      settings: this.lesson?.settings || {},
       challenges: this.lesson?.challenges || [],
       currentChallenge: this.getStep(),
       inputIndex: this.inputIndex,

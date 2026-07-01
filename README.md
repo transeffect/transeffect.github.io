@@ -289,7 +289,7 @@ Important optional keys:
 
 ### rhythmDrill
 
-Use `rhythmDrill` for timing and rhythmic accuracy. Rhythm drills first show a ready phase so the player can study the visual note/rest guide, then `Begin Rhythm` starts the count-in, metronome ticks, early/late feedback, missed-note detection, and average timing-error scoring.
+Use `rhythmDrill` for timing and rhythmic accuracy. Rhythm drills first show a ready phase so the player can study the visual note/rest guide and use `Play Example` to hear the expected pattern. `Begin Rhythm` then starts the count-in, metronome ticks, early/late feedback, missed-note detection, and average timing-error scoring.
 
 ```json
 {
