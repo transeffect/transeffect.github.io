@@ -1,0 +1,477 @@
+import { AudioEngine } from "./audio-engine.js";
+import { setupInputHandlers } from "./input.js";
+import { LessonEngine } from "./lesson-engine.js";
+import { loadLesson, loadLessonPack } from "./lesson-loader.js";
+import { buildPiano } from "./piano-view.js";
+
+const pianoEl = document.getElementById("piano");
+const statusEl = document.getElementById("status");
+const velEl = document.getElementById("vel");
+const volEl = document.getElementById("vol");
+const panWidthEl = document.getElementById("panWidth");
+const panTestBtn = document.getElementById("btnPanTest");
+const menuPairs = [
+  {
+    button: document.getElementById("btnLessonsMenu"),
+    panel: document.getElementById("lessonsPopover")
+  },
+  {
+    button: document.getElementById("btnVolumeMenu"),
+    panel: document.getElementById("volumePopover")
+  },
+  {
+    button: document.getElementById("btnSettingsMenu"),
+    panel: document.getElementById("settingsPopover")
+  }
+];
+
+const BASE_START = 60;
+const OCTAVES = 2;
+const LESSON_PACK_ID = "beginner";
+const SUSTAIN_VISUAL_TTL_MS = 8000;
+
+let octaveOffset = 0;
+let visibleStart = BASE_START;
+let visibleEnd = BASE_START + OCTAVES * 12 - 1;
+let panWidth = panWidthEl ? Number(panWidthEl.value) || 1.0 : 1.0;
+let sustainOn = false;
+let audioEnabled = false;
+let playMode = "piano";
+let lessonManifest = null;
+
+const pressedNotes = new Set();
+const noteToEl = new Map();
+const sustainedNotes = new Set();
+const sustainTimers = new Map();
+const pointerToNote = new Map();
+const keyboardHeld = new Set();
+const loadedLessons = new Map();
+
+const lessonEngine = new LessonEngine({
+  noteToEl,
+  onStatus: renderLessonStatus
+});
+
+const audio = new AudioEngine({
+  getAudioEnabled: () => audioEnabled,
+  getPlayMode: () => playMode,
+  getVisibleRange: () => ({ start: visibleStart, end: visibleEnd }),
+  getPanWidth: () => panWidth,
+  onNoteEnded: handleNoteEnded
+});
+
+function renderPiano() {
+  buildPiano({
+    pianoEl,
+    noteToEl,
+    pressedNotes,
+    getOctaveOffset: () => octaveOffset,
+    setVisibleRange: (start, end) => {
+      visibleStart = start;
+      visibleEnd = end;
+    },
+    lessonEngine,
+    baseStart: BASE_START,
+    octaves: OCTAVES
+  });
+}
+
+function closeMenus(exceptPanel = null) {
+  for (const { button, panel } of menuPairs) {
+    if (!button || !panel || panel === exceptPanel) continue;
+    panel.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+  }
+}
+
+function setupMenus() {
+  for (const { button, panel } of menuPairs) {
+    if (!button || !panel) continue;
+
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      closeMenus(panel);
+      panel.hidden = !willOpen;
+      button.setAttribute("aria-expanded", String(willOpen));
+    });
+
+    panel.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  document.addEventListener("click", () => closeMenus());
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenus();
+  });
+}
+
+function noteOn(evt) {
+  const { note, velocity } = evt;
+
+  sustainedNotes.delete(note);
+  const priorTimer = sustainTimers.get(note);
+  if (priorTimer) {
+    clearTimeout(priorTimer);
+    sustainTimers.delete(note);
+  }
+
+  pressedNotes.add(note);
+  const el = noteToEl.get(note);
+  if (el) {
+    el.classList.add("active");
+    el.classList.remove("sustained");
+  }
+  audio.noteOn(note, velocity);
+  lessonEngine.handleNoteOn(note);
+}
+
+function noteOff(evt) {
+  const { note } = evt;
+
+  pressedNotes.delete(note);
+  lessonEngine.handleNoteOff(note);
+
+  const el = noteToEl.get(note);
+
+  if (sustainOn) {
+    sustainedNotes.add(note);
+    if (el) {
+      el.classList.remove("active");
+      el.classList.add("sustained");
+    }
+
+    const prior = sustainTimers.get(note);
+    if (prior) clearTimeout(prior);
+    sustainTimers.set(
+      note,
+      setTimeout(() => {
+        sustainTimers.delete(note);
+        const keyEl = noteToEl.get(note);
+        if (keyEl) keyEl.classList.remove("sustained");
+      }, SUSTAIN_VISUAL_TTL_MS)
+    );
+    return;
+  }
+
+  sustainedNotes.delete(note);
+  if (el) {
+    el.classList.remove("active");
+    el.classList.remove("sustained");
+  }
+  audio.noteOff(note);
+}
+
+function setSustain(next) {
+  sustainOn = !!next;
+
+  const btn = document.getElementById("btnSustain");
+  btn.setAttribute("aria-pressed", String(sustainOn));
+  btn.textContent = sustainOn ? "Sustain: On" : "Sustain: Off";
+
+  if (!sustainOn) {
+    for (const note of Array.from(sustainedNotes)) {
+      if (!pressedNotes.has(note)) {
+        const el = noteToEl.get(note);
+        if (el) el.classList.remove("sustained");
+        audio.noteOff(note);
+        sustainedNotes.delete(note);
+        const tid = sustainTimers.get(note);
+        if (tid) {
+          clearTimeout(tid);
+          sustainTimers.delete(note);
+        }
+      }
+    }
+
+    for (const tid of sustainTimers.values()) clearTimeout(tid);
+    sustainTimers.clear();
+  }
+}
+
+function handleNoteEnded(note) {
+  if (!pressedNotes.has(note)) {
+    sustainedNotes.delete(note);
+    const el = noteToEl.get(note);
+    if (el) el.classList.remove("sustained");
+  }
+}
+
+async function setAudioEnabled(next) {
+  audioEnabled = !!next;
+
+  const btn = document.getElementById("btnAudio");
+  btn.setAttribute("aria-pressed", String(audioEnabled));
+  btn.textContent = audioEnabled ? "Audio: On" : "Audio: Off";
+
+  statusEl.textContent = audioEnabled ? "Audio: enabling..." : "Audio: muted";
+
+  try {
+    if (audioEnabled) {
+      await audio.ensureStarted();
+      statusEl.textContent = "Audio: enabled";
+    } else {
+      audio.allOff();
+      if (audio.ctx) await audio.ctx.suspend();
+      statusEl.textContent = "Audio: muted";
+    }
+  } catch (err) {
+    audioEnabled = false;
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = "Audio: Off";
+    statusEl.textContent = "Audio: unavailable";
+    throw err;
+  }
+}
+
+function setPlayMode(next) {
+  playMode = (next === "organ") ? "organ" : "piano";
+
+  const btn = document.getElementById("btnMode");
+  const isOrgan = playMode === "organ";
+  btn.setAttribute("aria-pressed", String(isOrgan));
+  btn.textContent = isOrgan ? "Mode: Organ" : "Mode: Piano";
+}
+
+function setOctaveOffset(next) {
+  octaveOffset = Math.max(-3, Math.min(3, next));
+  audio.allOff();
+  setSustain(false);
+  pressedNotes.clear();
+  pointerToNote.clear();
+  keyboardHeld.clear();
+  sustainedNotes.clear();
+  renderPiano();
+}
+
+function setLessonControlsEnabled(isLoaded) {
+  const startBtn = document.getElementById("btnLessonStart");
+  const stopBtn = document.getElementById("btnLessonStop");
+  const prevBtn = document.getElementById("btnLessonPrev");
+  const nextBtn = document.getElementById("btnLessonNext");
+  startBtn.disabled = !isLoaded;
+  stopBtn.disabled = !isLoaded;
+  prevBtn.disabled = !isLoaded;
+  nextBtn.disabled = !isLoaded;
+}
+
+function renderLessonStatus(status) {
+  const el = document.getElementById("lessonStatus");
+  if (!el) return;
+
+  if (!lessonManifest) {
+    el.textContent = "Lesson: (pack not loaded)";
+    return;
+  }
+
+  if (!status || !status.title) {
+    el.textContent = "Lesson: Ready";
+    return;
+  }
+
+  if (!status.active) {
+    el.textContent = `Lesson: ${status.title} (ready)`;
+  } else if (status.awaitingRelease) {
+    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: Release`;
+  } else {
+    el.textContent = `Lesson: ${status.title} • Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
+  }
+
+  const lessonBtn = document.getElementById("btnLessonsMenu");
+  if (lessonBtn) {
+    lessonBtn.textContent = status.active ? `Lesson ${status.stepNum}/${status.total}` : "Lessons";
+  }
+}
+
+function renderLessonError(message) {
+  const el = document.getElementById("lessonStatus");
+  if (!el) return;
+  el.textContent = `Lesson: ${message}`;
+  const lessonBtn = document.getElementById("btnLessonsMenu");
+  if (lessonBtn) lessonBtn.textContent = "Lessons";
+}
+
+async function initLessons() {
+  try {
+    lessonManifest = await loadLessonPack(LESSON_PACK_ID);
+
+    const select = document.getElementById("lessonSelect");
+    select.innerHTML = "";
+
+    const lessons = lessonManifest.lessons || [];
+    for (const item of lessons) {
+      const opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = item.title || item.id;
+      opt.dataset.file = item.file;
+      select.appendChild(opt);
+    }
+
+    if (lessons.length === 0) {
+      setLessonControlsEnabled(false);
+      renderLessonStatus(null);
+      return;
+    }
+
+    await preloadLessonFromSelect();
+    setLessonControlsEnabled(true);
+    renderLessonStatus(lessonEngine.getStatus());
+
+    select.addEventListener("change", async () => {
+      try {
+        await preloadLessonFromSelect();
+        setLessonControlsEnabled(true);
+        if (lessonEngine.active) {
+          const l = getSelectedLesson();
+          if (l) lessonEngine.start(l);
+        } else {
+          renderLessonStatus(lessonEngine.getStatus());
+        }
+      } catch (err) {
+        console.error("Lesson load failed:", err);
+        setLessonControlsEnabled(false);
+        renderLessonError("failed to load");
+      }
+    });
+
+    document.getElementById("btnLessonStart").addEventListener("click", () => {
+      const l = getSelectedLesson();
+      if (l) lessonEngine.start(l);
+    });
+
+    document.getElementById("btnLessonStop").addEventListener("click", () => {
+      lessonEngine.stop();
+    });
+
+    document.getElementById("btnLessonPrev").addEventListener("click", () => {
+      lessonEngine.prev();
+    });
+
+    document.getElementById("btnLessonNext").addEventListener("click", () => {
+      lessonEngine.next();
+    });
+  } catch (err) {
+    console.error("Lesson init failed:", err);
+    setLessonControlsEnabled(false);
+    renderLessonError("failed to load");
+  }
+}
+
+function getSelectedLessonId() {
+  const select = document.getElementById("lessonSelect");
+  return select?.value || null;
+}
+
+function getSelectedLessonFile() {
+  const select = document.getElementById("lessonSelect");
+  const opt = select?.selectedOptions?.[0];
+  return opt?.dataset?.file || null;
+}
+
+function getSelectedLesson() {
+  const id = getSelectedLessonId();
+  if (!id) return null;
+  return loadedLessons.get(id) || null;
+}
+
+async function preloadLessonFromSelect() {
+  const id = getSelectedLessonId();
+  const file = getSelectedLessonFile();
+  if (!id || !file) return;
+
+  if (!loadedLessons.has(id)) {
+    const lesson = await loadLesson(LESSON_PACK_ID, file);
+    loadedLessons.set(id, lesson);
+  }
+
+  renderLessonStatus(lessonEngine.getStatus());
+}
+
+document.getElementById("btnAudio").addEventListener("click", async () => {
+  try {
+    await setAudioEnabled(!audioEnabled);
+  } catch {
+    // status is already set in setAudioEnabled
+  }
+});
+
+document.getElementById("btnSustain").addEventListener("click", () => {
+  setSustain(!sustainOn);
+});
+
+document.getElementById("btnMode").addEventListener("click", () => {
+  setPlayMode(playMode === "piano" ? "organ" : "piano");
+});
+
+volEl.addEventListener("input", () => {
+  audio.setVolume(Number(volEl.value));
+});
+
+if (panWidthEl) {
+  panWidthEl.addEventListener("input", () => {
+    panWidth = Number(panWidthEl.value) || 1.0;
+  });
+}
+
+if (panTestBtn) {
+  panTestBtn.addEventListener("click", async () => {
+    try {
+      await setAudioEnabled(true);
+    } catch {}
+    const v = Number(velEl?.value) || 0.8;
+    const low = visibleStart;
+    const high = visibleEnd;
+    const dur = 180;
+    const gap = 120;
+
+    audio.noteOn(low, v);
+    setTimeout(() => audio.noteOff(low), dur);
+
+    setTimeout(() => {
+      audio.noteOn(high, v);
+      setTimeout(() => audio.noteOff(high), dur);
+    }, dur + gap);
+  });
+}
+
+document.getElementById("btnOctDown").addEventListener("click", () => setOctaveOffset(octaveOffset - 1));
+document.getElementById("btnOctUp").addEventListener("click", () => setOctaveOffset(octaveOffset + 1));
+
+setupInputHandlers({
+  pianoEl,
+  velEl,
+  pointerToNote,
+  keyboardHeld,
+  noteOn,
+  noteOff,
+  setPlayMode,
+  getPlayMode: () => playMode,
+  setSustain,
+  getSustainOn: () => sustainOn,
+  setOctaveOffset,
+  getOctaveOffset: () => octaveOffset,
+  baseStart: BASE_START
+});
+
+window.addEventListener("blur", () => {
+  audio.allOff();
+  setSustain(false);
+  for (const tid of sustainTimers.values()) clearTimeout(tid);
+  sustainTimers.clear();
+  pressedNotes.clear();
+  pointerToNote.clear();
+  keyboardHeld.clear();
+  sustainedNotes.clear();
+  void setAudioEnabled(false).catch(() => {});
+
+  for (const el of noteToEl.values()) {
+    el.classList.remove("active");
+    el.classList.remove("sustained");
+  }
+});
+
+setupMenus();
+setPlayMode("piano");
+renderPiano();
+initLessons();
