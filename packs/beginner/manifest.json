@@ -25,22 +25,22 @@
     },
     {
       "id": "beginner-c-major-scale-one-octave",
-      "title": "Preview: C Major Scale Drill",
+      "title": "C Major Scale Drill",
       "file": "lessons/beginner-c-major-scale-one-octave.json"
     },
     {
       "id": "beginner-basic-intervals",
-      "title": "Preview: Basic Interval Drill",
+      "title": "Basic Interval Drill",
       "file": "lessons/beginner-basic-intervals.json"
     },
     {
       "id": "beginner-quarter-half-rhythm",
-      "title": "Preview: Quarter and Half Rhythm",
+      "title": "Quarter and Half Rhythm",
       "file": "lessons/beginner-quarter-half-rhythm.json"
     },
     {
       "id": "beginner-major-minor-ear",
-      "title": "Preview: Major vs Minor Ear Training",
+      "title": "Major vs Minor Ear Training",
       "file": "lessons/beginner-major-minor-ear.json"
     },
     {
@@ -55,22 +55,22 @@
     },
     {
       "id": "intermediate-g-major-scale",
-      "title": "Preview: G Major Scale Drill",
+      "title": "G Major Scale Drill",
       "file": "lessons/intermediate-g-major-scale.json"
     },
     {
       "id": "intermediate-fourths-fifths",
-      "title": "Preview: Fourths and Fifths",
+      "title": "Fourths and Fifths",
       "file": "lessons/intermediate-fourths-fifths.json"
     },
     {
       "id": "intermediate-syncopation-rhythm",
-      "title": "Preview: Syncopation Rhythm",
+      "title": "Syncopation Rhythm",
       "file": "lessons/intermediate-syncopation-rhythm.json"
     },
     {
       "id": "intermediate-cadence-ear",
-      "title": "Preview: Cadence Ear Training",
+      "title": "Cadence Ear Training",
       "file": "lessons/intermediate-cadence-ear.json"
     }
   ]
