@@ -1,0 +1,39 @@
+{
+  "id": "intermediate-fourths-fifths",
+  "title": "Fourths and Fifths",
+  "mode": "intervalDrill",
+  "level": "intermediate",
+  "description": "Schema-ready drill for perfect fourths and fifths.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "p4-c-f",
+      "type": "interval",
+      "label": "Perfect fourth: C to F",
+      "root": 60,
+      "interval": "P4",
+      "direction": "up",
+      "sequence": [60, 65]
+    },
+    {
+      "id": "p5-c-g",
+      "type": "interval",
+      "label": "Perfect fifth: C to G",
+      "root": 60,
+      "interval": "P5",
+      "direction": "up",
+      "sequence": [60, 67]
+    },
+    {
+      "id": "p4-g-c",
+      "type": "interval",
+      "label": "Perfect fourth: G to C",
+      "root": 67,
+      "interval": "P4",
+      "direction": "up",
+      "sequence": [67, 72]
+    }
+  ]
+}

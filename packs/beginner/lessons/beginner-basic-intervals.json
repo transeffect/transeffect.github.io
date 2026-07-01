@@ -1,0 +1,39 @@
+{
+  "id": "beginner-basic-intervals",
+  "title": "Basic Interval Drill",
+  "mode": "intervalDrill",
+  "level": "beginner",
+  "description": "Schema-ready drill for recognizing and playing small intervals from C.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "major-second",
+      "type": "interval",
+      "label": "Major second from C",
+      "root": 60,
+      "interval": "M2",
+      "direction": "up",
+      "sequence": [60, 62]
+    },
+    {
+      "id": "major-third",
+      "type": "interval",
+      "label": "Major third from C",
+      "root": 60,
+      "interval": "M3",
+      "direction": "up",
+      "sequence": [60, 64]
+    },
+    {
+      "id": "perfect-fourth",
+      "type": "interval",
+      "label": "Perfect fourth from C",
+      "root": 60,
+      "interval": "P4",
+      "direction": "up",
+      "sequence": [60, 65]
+    }
+  ]
+}

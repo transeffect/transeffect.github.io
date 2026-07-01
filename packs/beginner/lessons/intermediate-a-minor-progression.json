@@ -1,0 +1,36 @@
+{
+  "id": "intermediate-a-minor-progression",
+  "title": "Intermediate A Minor Progression",
+  "mode": "stepLesson",
+  "level": "intermediate",
+  "description": "Practice a simple i-iv-V-i progression in A minor.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "i-a-minor",
+      "type": "noteSet",
+      "label": "i: A minor",
+      "notes": [57, 60, 64]
+    },
+    {
+      "id": "iv-d-minor",
+      "type": "noteSet",
+      "label": "iv: D minor",
+      "notes": [62, 65, 69]
+    },
+    {
+      "id": "v-e-major",
+      "type": "noteSet",
+      "label": "V: E major",
+      "notes": [64, 68, 71]
+    },
+    {
+      "id": "i-a-minor-high",
+      "type": "noteSet",
+      "label": "Return to i: A minor",
+      "notes": [69, 72, 76]
+    }
+  ]
+}

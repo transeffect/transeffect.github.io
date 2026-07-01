@@ -1,0 +1,39 @@
+{
+  "id": "beginner-c-and-g-chords",
+  "title": "Beginner C and G Chords",
+  "mode": "chordDrill",
+  "level": "beginner",
+  "description": "Practice simple major triad shapes in root position.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "c-major",
+      "type": "chord",
+      "label": "C major",
+      "root": 60,
+      "quality": "major",
+      "inversion": 0,
+      "notes": [60, 64, 67]
+    },
+    {
+      "id": "g-major",
+      "type": "chord",
+      "label": "G major",
+      "root": 67,
+      "quality": "major",
+      "inversion": 0,
+      "notes": [67, 71, 74]
+    },
+    {
+      "id": "f-major",
+      "type": "chord",
+      "label": "F major",
+      "root": 65,
+      "quality": "major",
+      "inversion": 0,
+      "notes": [65, 69, 72]
+    }
+  ]
+}

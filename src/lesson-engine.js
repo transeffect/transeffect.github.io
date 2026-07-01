@@ -5,6 +5,7 @@ export class LessonEngine {
     this.active = false;
     this.lesson = null;
     this.stepIndex = 0;
+    this.inputIndex = 0;
     this.held = new Set();
     this.awaitingRelease = false;
     this.stepStartedAt = 0;
@@ -16,6 +17,7 @@ export class LessonEngine {
   start(lesson) {
     this.lesson = lesson;
     this.stepIndex = 0;
+    this.inputIndex = 0;
     this.held.clear();
     this.awaitingRelease = false;
     this.stepStartedAt = performance.now();
@@ -28,6 +30,7 @@ export class LessonEngine {
   stop(reason = "stopped") {
     this.active = false;
     this.held.clear();
+    this.inputIndex = 0;
     this.awaitingRelease = false;
     this.clearTargets();
     this._emitPractice("lessonstop", { reason, ...this.getStatus() });
@@ -48,15 +51,15 @@ export class LessonEngine {
     const step = this.getStep();
     if (!step) return "";
     const label = step.label || "Play";
-    const notes = (step.notes || []).map(midiToName).join(", ");
-    return `${label} (${notes})`;
+    const notes = this.getDisplayNotes(step);
+    return notes.length ? `${label} (${notes.map(midiToName).join(", ")})` : label;
   }
 
   showTargets() {
     this.clearTargets();
     const step = this.getStep();
     if (!step) return;
-    (step.notes || []).forEach(n => {
+    this.getTargetNotes(step).forEach(n => {
       const el = this.noteToEl.get(n);
       if (el) el.classList.add("target");
     });
@@ -75,7 +78,12 @@ export class LessonEngine {
     const step = this.getStep();
     if (!step || this.awaitingRelease) return;
 
-    const want = step.notes || [];
+    if (this.isOrderedMode()) {
+      this.handleOrderedNoteOn(note, step);
+      return;
+    }
+
+    const want = this.getRequiredNotes(step);
     if (!want.includes(note)) {
       const el = this.noteToEl.get(note);
       if (el) {
@@ -115,7 +123,7 @@ export class LessonEngine {
     const step = this.getStep();
     if (!step) return;
 
-    const releasedRequiredNotes = (step.notes || []).every(n => !this.held.has(n));
+    const releasedRequiredNotes = this.getRequiredNotes(step).every(n => !this.held.has(n));
     if (releasedRequiredNotes) this.completeStep();
   }
 
@@ -123,10 +131,74 @@ export class LessonEngine {
     if (!this.lesson) return;
     const max = this.getStepCount();
     this.stepIndex = Math.max(0, Math.min(max - 1, idx));
+    this.inputIndex = 0;
     this.held.clear();
     this.awaitingRelease = false;
     this.stepStartedAt = performance.now();
     if (this.active) this.refreshTargets();
+    this._emitStatus();
+  }
+
+  handleOrderedNoteOn(note, step) {
+    this.skipRests(step);
+
+    const expected = this.getExpectedOrderedNote(step);
+    if (expected == null) {
+      this.completeStep();
+      return;
+    }
+
+    if (note !== expected) {
+      const el = this.noteToEl.get(note);
+      if (el) {
+        el.classList.add("wrong");
+        setTimeout(() => el.classList.remove("wrong"), 160);
+      }
+      this._emitPractice("wrongnote", {
+        note,
+        stepIndex: this.stepIndex,
+        expectedNotes: [expected]
+      });
+      return;
+    }
+
+    this._emitPractice("correctnote", {
+      note,
+      stepIndex: this.stepIndex,
+      inputIndex: this.inputIndex
+    });
+
+    this.inputIndex += 1;
+    this.skipRests(step);
+
+    if (this.isOrderedStepComplete(step)) {
+      this.completeStep();
+    } else {
+      this.refreshTargets();
+      this._emitStatus();
+    }
+  }
+
+  answerCurrentChallenge(answer) {
+    if (!this.active || !this.lesson || this.lesson.mode !== "earTraining") return;
+
+    const step = this.getStep();
+    if (!step) return;
+
+    if (answer === step.answer) {
+      this._emitPractice("correctnote", {
+        answer,
+        stepIndex: this.stepIndex
+      });
+      this.completeStep();
+      return;
+    }
+
+    this._emitPractice("wrongnote", {
+      answer,
+      stepIndex: this.stepIndex,
+      expectedAnswer: step.answer
+    });
     this._emitStatus();
   }
 
@@ -170,6 +242,55 @@ export class LessonEngine {
     return this.lesson?.steps?.length ?? this.lesson?.challenges?.length ?? 0;
   }
 
+  isOrderedMode() {
+    return ["scaleDrill", "intervalDrill", "rhythmDrill"].includes(this.lesson?.mode);
+  }
+
+  getRequiredNotes(step) {
+    return step.notes || [];
+  }
+
+  getDisplayNotes(step) {
+    if (step.notes) return step.notes;
+    if (step.sequence) return step.sequence;
+    if (step.rhythm) return step.rhythm.map(event => event.note).filter(Number.isFinite);
+    if (step.prompt?.notes) return step.prompt.notes;
+    if (step.prompt?.chords) return step.prompt.chords.flatMap(chord => chord.notes || []);
+    return [];
+  }
+
+  getTargetNotes(step) {
+    if (this.isOrderedMode()) {
+      this.skipRests(step);
+      const expected = this.getExpectedOrderedNote(step);
+      return expected == null ? [] : [expected];
+    }
+    if (this.lesson?.mode === "earTraining") return [];
+    return this.getRequiredNotes(step);
+  }
+
+  getOrderedEvents(step) {
+    if (step.sequence) return step.sequence.map(note => ({ note }));
+    if (step.rhythm) return step.rhythm;
+    return [];
+  }
+
+  getExpectedOrderedNote(step) {
+    const event = this.getOrderedEvents(step)[this.inputIndex];
+    return event?.note;
+  }
+
+  skipRests(step) {
+    const events = this.getOrderedEvents(step);
+    while (this.inputIndex < events.length && events[this.inputIndex].note == null) {
+      this.inputIndex += 1;
+    }
+  }
+
+  isOrderedStepComplete(step) {
+    return this.inputIndex >= this.getOrderedEvents(step).length;
+  }
+
   getStatus() {
     const title = this.lesson?.title || "(none)";
     const total = this.getStepCount();
@@ -183,7 +304,9 @@ export class LessonEngine {
       total,
       stepLabel: this.getStepLabel(),
       awaitingRelease: this.awaitingRelease,
-      challenges: this.lesson?.challenges || []
+      challenges: this.lesson?.challenges || [],
+      currentChallenge: this.getStep(),
+      inputIndex: this.inputIndex
     };
   }
 }

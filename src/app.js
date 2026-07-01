@@ -20,6 +20,9 @@ const practiceFeedbackEl = document.getElementById("practiceFeedback");
 const practiceSummaryEl = document.getElementById("practiceSummary");
 const practiceTitleEl = document.getElementById("practiceTitle");
 const practiceStepLabelEl = document.getElementById("practiceStepLabel");
+const earTrainingControlsEl = document.getElementById("earTrainingControls");
+const earChoicesEl = document.getElementById("earChoices");
+const playPromptBtn = document.getElementById("btnPlayPrompt");
 const menuPairs = [
   {
     button: document.getElementById("btnLessonsMenu"),
@@ -343,6 +346,7 @@ function renderPracticeHeader(status) {
   if (!status || !status.title || status.title === "(none)") {
     practiceTitleEl.textContent = "No lesson active";
     practiceStepLabelEl.textContent = "Choose a lesson to begin.";
+    renderEarTrainingControls(null);
     return;
   }
 
@@ -357,6 +361,76 @@ function renderPracticeHeader(status) {
   } else {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`;
   }
+  renderEarTrainingControls(status);
+}
+
+function renderEarTrainingControls(status) {
+  if (!earTrainingControlsEl || !earChoicesEl) return;
+
+  const challenge = status?.currentChallenge;
+  const show = status?.active && status.mode === "earTraining" && challenge;
+  earTrainingControlsEl.hidden = !show;
+  earChoicesEl.innerHTML = "";
+
+  if (!show) return;
+
+  for (const choice of challenge.choices || []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = choice;
+    btn.addEventListener("click", () => {
+      lessonEngine.answerCurrentChallenge(choice);
+    });
+    earChoicesEl.appendChild(btn);
+  }
+}
+
+async function playCurrentEarPrompt() {
+  const status = lessonEngine.getStatus();
+  const challenge = status.currentChallenge;
+  if (!status.active || status.mode !== "earTraining" || !challenge?.prompt) return;
+
+  try {
+    await setAudioEnabled(true);
+  } catch {
+    return;
+  }
+
+  const prompt = challenge.prompt;
+  if (Array.isArray(prompt.notes)) {
+    playNotes(prompt.notes, prompt.playStyle || "blocked");
+  } else if (Array.isArray(prompt.chords)) {
+    playChordSequence(prompt.chords);
+  }
+}
+
+function playNotes(notes, playStyle = "blocked") {
+  const v = Number(velEl?.value) || 0.8;
+  const dur = 550;
+  const gap = 170;
+
+  if (playStyle === "arpeggiated" || playStyle === "melodic") {
+    notes.forEach((note, idx) => {
+      setTimeout(() => {
+        audio.noteOn(note, v);
+        setTimeout(() => audio.noteOff(note), dur);
+      }, idx * (dur + gap));
+    });
+    return;
+  }
+
+  notes.forEach(note => audio.noteOn(note, v));
+  setTimeout(() => notes.forEach(note => audio.noteOff(note)), dur);
+}
+
+function playChordSequence(chords) {
+  const dur = 650;
+  const gap = 220;
+  chords.forEach((chord, idx) => {
+    setTimeout(() => {
+      playNotes(chord.notes || [], "blocked");
+    }, idx * (dur + gap));
+  });
 }
 
 async function initLessons() {
@@ -499,6 +573,12 @@ if (panTestBtn) {
       audio.noteOn(high, v);
       setTimeout(() => audio.noteOff(high), dur);
     }, dur + gap);
+  });
+}
+
+if (playPromptBtn) {
+  playPromptBtn.addEventListener("click", () => {
+    void playCurrentEarPrompt();
   });
 }
 

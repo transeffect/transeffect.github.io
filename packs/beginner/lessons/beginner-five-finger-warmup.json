@@ -1,0 +1,48 @@
+{
+  "id": "beginner-five-finger-warmup",
+  "title": "Beginner Five-Finger Warmup",
+  "mode": "stepLesson",
+  "level": "beginner",
+  "description": "Build comfort with the C major five-finger position.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "c",
+      "type": "noteSet",
+      "label": "Play C with thumb",
+      "notes": [60]
+    },
+    {
+      "id": "d",
+      "type": "noteSet",
+      "label": "Play D with index finger",
+      "notes": [62]
+    },
+    {
+      "id": "e",
+      "type": "noteSet",
+      "label": "Play E with middle finger",
+      "notes": [64]
+    },
+    {
+      "id": "f",
+      "type": "noteSet",
+      "label": "Play F with ring finger",
+      "notes": [65]
+    },
+    {
+      "id": "g",
+      "type": "noteSet",
+      "label": "Play G with pinky",
+      "notes": [67]
+    },
+    {
+      "id": "c-g",
+      "type": "noteSet",
+      "label": "Play C and G together",
+      "notes": [60, 67]
+    }
+  ]
+}

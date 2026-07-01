@@ -1,0 +1,34 @@
+{
+  "id": "beginner-quarter-half-rhythm",
+  "title": "Quarter and Half Rhythm",
+  "mode": "rhythmDrill",
+  "level": "beginner",
+  "description": "Schema-ready rhythm drill for quarter notes and half notes.",
+  "settings": {
+    "tempo": 72,
+    "timeSignature": "4/4",
+    "timingToleranceMs": 140
+  },
+  "challenges": [
+    {
+      "id": "quarter-quarter-half",
+      "type": "rhythm",
+      "label": "Quarter, quarter, half",
+      "rhythm": [
+        { "beats": 1, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 2, "note": 60 }
+      ]
+    },
+    {
+      "id": "half-quarter-quarter",
+      "type": "rhythm",
+      "label": "Half, quarter, quarter",
+      "rhythm": [
+        { "beats": 2, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 1, "note": 60 }
+      ]
+    }
+  ]
+}

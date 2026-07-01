@@ -1,0 +1,30 @@
+{
+  "id": "intermediate-g-major-scale",
+  "title": "G Major Scale Drill",
+  "mode": "scaleDrill",
+  "level": "intermediate",
+  "description": "Schema-ready ordered scale drill for G major.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "g-major-ascending",
+      "type": "sequence",
+      "label": "G major ascending",
+      "key": "G",
+      "scale": "major",
+      "direction": "ascending",
+      "sequence": [67, 69, 71, 72, 74, 76, 78, 79]
+    },
+    {
+      "id": "g-major-descending",
+      "type": "sequence",
+      "label": "G major descending",
+      "key": "G",
+      "scale": "major",
+      "direction": "descending",
+      "sequence": [79, 78, 76, 74, 72, 71, 69, 67]
+    }
+  ]
+}

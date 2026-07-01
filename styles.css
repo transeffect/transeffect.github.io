@@ -340,6 +340,13 @@
   min-width: 0;
 }
 
+.earTrainingControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .practiceSummary {
   padding: 8px 10px;
   border: 1px solid rgba(160,255,218,.28);

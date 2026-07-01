@@ -101,12 +101,12 @@ When `requireRelease` is `true`, the player must press all required notes for th
 
 The supported `mode` values are:
 
-- `stepLesson`: A guided sequence of note or chord targets. This is the current implemented lesson mode.
-- `chordDrill`: Repeated chord challenges. Defined in the schema, evaluator stubbed for note-set matching.
-- `scaleDrill`: Ordered note-sequence challenges. Defined in the schema, evaluator stubbed for sequence matching.
-- `intervalDrill`: Ordered two-note or short-sequence challenges. Defined in the schema, evaluator stubbed for sequence matching.
-- `rhythmDrill`: Timed rhythm-event challenges. Schema validation exists; full timing evaluator is future work.
-- `earTraining`: Heard prompt plus answer challenges. Schema validation exists; full prompt playback and answer UI are future work.
+- `stepLesson`: A guided sequence of note or chord targets.
+- `chordDrill`: Repeated chord challenges using note-set matching.
+- `scaleDrill`: Ordered note-sequence challenges.
+- `intervalDrill`: Ordered two-note or short-sequence challenges.
+- `rhythmDrill`: Rhythm-event challenges. Basic note-event playback is supported; strict timing evaluation is future work.
+- `earTraining`: Heard prompt plus answer challenges. Prompt playback and choice answers are supported; richer answer types are future work.
 
 The practice engine uses this normalized session shape internally:
 
@@ -265,7 +265,7 @@ Important optional keys:
 
 ### rhythmDrill
 
-Use `rhythmDrill` for timing and rhythmic accuracy. This mode needs a future timing evaluator before it is fully playable.
+Use `rhythmDrill` for timing and rhythmic accuracy. The current app advances through playable rhythm events and skips rests; strict early/late scoring is future work.
 
 ```json
 {
@@ -305,7 +305,7 @@ Important optional keys:
 
 ### earTraining
 
-Use `earTraining` for heard prompts and user answers. This mode needs future prompt playback and answer UI before it is fully playable.
+Use `earTraining` for heard prompts and user answers. The current app can play note/chord prompts and render multiple-choice answers.
 
 ```json
 {

@@ -1,0 +1,33 @@
+{
+  "id": "beginner-major-minor-ear",
+  "title": "Major vs Minor Ear Training",
+  "mode": "earTraining",
+  "level": "beginner",
+  "description": "Schema-ready ear training for hearing major and minor triads.",
+  "challenges": [
+    {
+      "id": "c-major",
+      "type": "heardChord",
+      "label": "Identify C major",
+      "prompt": {
+        "type": "chord",
+        "notes": [60, 64, 67],
+        "playStyle": "blocked"
+      },
+      "answer": "major",
+      "choices": ["major", "minor"]
+    },
+    {
+      "id": "a-minor",
+      "type": "heardChord",
+      "label": "Identify A minor",
+      "prompt": {
+        "type": "chord",
+        "notes": [57, 60, 64],
+        "playStyle": "blocked"
+      },
+      "answer": "minor",
+      "choices": ["major", "minor"]
+    }
+  ]
+}

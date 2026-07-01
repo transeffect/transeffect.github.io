@@ -1,0 +1,52 @@
+{
+  "id": "intermediate-primary-triads-c",
+  "title": "Intermediate Primary Triads in C",
+  "mode": "chordDrill",
+  "level": "intermediate",
+  "description": "Practice I, IV, V, and vi triads in C major.",
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "i-c-major",
+      "type": "chord",
+      "label": "I: C major",
+      "root": 60,
+      "romanNumeral": "I",
+      "quality": "major",
+      "inversion": 0,
+      "notes": [60, 64, 67]
+    },
+    {
+      "id": "iv-f-major",
+      "type": "chord",
+      "label": "IV: F major",
+      "root": 65,
+      "romanNumeral": "IV",
+      "quality": "major",
+      "inversion": 0,
+      "notes": [65, 69, 72]
+    },
+    {
+      "id": "v-g-major",
+      "type": "chord",
+      "label": "V: G major",
+      "root": 67,
+      "romanNumeral": "V",
+      "quality": "major",
+      "inversion": 0,
+      "notes": [67, 71, 74]
+    },
+    {
+      "id": "vi-a-minor",
+      "type": "chord",
+      "label": "vi: A minor",
+      "root": 69,
+      "romanNumeral": "vi",
+      "quality": "minor",
+      "inversion": 0,
+      "notes": [69, 72, 76]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "intermediate-syncopation-rhythm",
+  "title": "Syncopation Rhythm",
+  "mode": "rhythmDrill",
+  "level": "intermediate",
+  "description": "Schema-ready rhythm drill for off-beat entries and syncopation.",
+  "settings": {
+    "tempo": 84,
+    "timeSignature": "4/4",
+    "timingToleranceMs": 100
+  },
+  "challenges": [
+    {
+      "id": "eighth-quarter-eighth",
+      "type": "rhythm",
+      "label": "Eighth, quarter, eighth, half",
+      "rhythm": [
+        { "beats": 0.5, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 0.5, "note": 60 },
+        { "beats": 2, "note": 60 }
+      ]
+    },
+    {
+      "id": "offbeat-pattern",
+      "type": "rhythm",
+      "label": "Off-beat quarter pattern",
+      "rhythm": [
+        { "beats": 0.5 },
+        { "beats": 1, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 1, "note": 60 },
+        { "beats": 0.5 }
+      ]
+    }
+  ]
+}

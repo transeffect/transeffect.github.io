@@ -1,0 +1,39 @@
+{
+  "id": "intermediate-cadence-ear",
+  "title": "Cadence Ear Training",
+  "mode": "earTraining",
+  "level": "intermediate",
+  "description": "Schema-ready ear training for hearing authentic and plagal cadences.",
+  "challenges": [
+    {
+      "id": "authentic-cadence-c",
+      "type": "heardProgression",
+      "label": "Identify V-I in C",
+      "prompt": {
+        "type": "progression",
+        "chords": [
+          { "label": "G major", "notes": [67, 71, 74] },
+          { "label": "C major", "notes": [60, 64, 67] }
+        ],
+        "playStyle": "blocked"
+      },
+      "answer": "authentic",
+      "choices": ["authentic", "plagal"]
+    },
+    {
+      "id": "plagal-cadence-c",
+      "type": "heardProgression",
+      "label": "Identify IV-I in C",
+      "prompt": {
+        "type": "progression",
+        "chords": [
+          { "label": "F major", "notes": [65, 69, 72] },
+          { "label": "C major", "notes": [60, 64, 67] }
+        ],
+        "playStyle": "blocked"
+      },
+      "answer": "plagal",
+      "choices": ["authentic", "plagal"]
+    }
+  ]
+}
