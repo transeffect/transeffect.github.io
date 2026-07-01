@@ -115,6 +115,7 @@ function renderPiano() {
 
 function renderPracticeStats() {
   const snapshot = practiceEngine.getSnapshot();
+  const status = getLessonDisplayStatus();
   const total = snapshot.totalSteps || 0;
   const completed = snapshot.completedSteps || 0;
   const accuracy = snapshot.accuracy;
@@ -144,7 +145,6 @@ function renderPracticeStats() {
     }
   }
 
-  const status = lessonEngine.getStatus();
   if (
     practiceFeedbackEl &&
     !rhythmExample.active &&
@@ -155,6 +155,15 @@ function renderPracticeStats() {
     snapshot.lastMessage === "Start a lesson to track progress."
   ) {
     practiceFeedbackEl.textContent = "Press Start when you are ready.";
+  }
+
+  if (
+    practiceFeedbackEl &&
+    !rhythmExample.active &&
+    appMode === "lesson" &&
+    status.preview
+  ) {
+    practiceFeedbackEl.textContent = getPreviewFeedback(status);
   }
 
   if (practiceFeedbackEl && rhythmExample.active) {
@@ -190,7 +199,7 @@ function renderAppMode() {
     renderEarTrainingControls(null);
     renderRhythmGuide(null);
   } else {
-    renderLessonStatus(lessonEngine.getStatus());
+    renderLessonStatus(getLessonDisplayStatus());
     renderPracticeStats();
   }
 }
@@ -454,6 +463,67 @@ function renderLessonError(message) {
   renderPracticeHeader(null);
 }
 
+function getLessonDisplayStatus() {
+  const activeStatus = lessonEngine.getStatus();
+  if (activeStatus.active) return activeStatus;
+
+  const lesson = getSelectedLesson();
+  if (!lesson) return activeStatus;
+
+  return createLessonPreviewStatus(lesson);
+}
+
+function createLessonPreviewStatus(lesson) {
+  const challenges = lesson.challenges || lesson.steps || [];
+  const firstChallenge = challenges[0] || null;
+  return {
+    active: false,
+    preview: true,
+    mode: lesson.mode || "stepLesson",
+    title: lesson.title || "(none)",
+    stepIndex: 0,
+    stepNum: challenges.length ? 1 : 0,
+    total: challenges.length,
+    stepLabel: getChallengeLabel(firstChallenge),
+    awaitingRelease: false,
+    settings: lesson.settings || {},
+    challenges,
+    currentChallenge: firstChallenge,
+    inputIndex: 0,
+    rhythmReady: false,
+    rhythm: null
+  };
+}
+
+function getChallengeLabel(challenge) {
+  if (!challenge) return "";
+  const label = challenge.label || "Play";
+  const notes = getChallengeDisplayNotes(challenge);
+  return notes.length ? `${label} (${notes.map(midiToName).join(", ")})` : label;
+}
+
+function getChallengeDisplayNotes(challenge) {
+  if (challenge.notes) return challenge.notes;
+  if (challenge.sequence) return challenge.sequence;
+  if (challenge.rhythm) return challenge.rhythm.map(event => event.note).filter(Number.isFinite);
+  if (challenge.prompt?.notes) return challenge.prompt.notes;
+  if (challenge.prompt?.chords) return challenge.prompt.chords.flatMap(chord => chord.notes || []);
+  return [];
+}
+
+function getPreviewFeedback(status) {
+  if (status.mode === "rhythmDrill") {
+    return "Study the rhythm guide or play the example, then press Start.";
+  }
+  if (status.mode === "earTraining") {
+    return "Press Start to hear the prompt and answer the question.";
+  }
+  if (status.mode === "scaleDrill" || status.mode === "intervalDrill") {
+    return "Review the first target, then press Start.";
+  }
+  return "Review the first target, then press Start.";
+}
+
 function renderPracticeHeader(status) {
   if (!practiceTitleEl || !practiceStepLabelEl) return;
 
@@ -469,7 +539,11 @@ function renderPracticeHeader(status) {
     ? status.title
     : `${status.title} ready`;
 
-  if (!status.active) {
+  if (status.preview) {
+    practiceStepLabelEl.textContent = status.total
+      ? `Step ${status.stepNum}/${status.total}: ${status.stepLabel}`
+      : "Press Start to begin.";
+  } else if (!status.active) {
     practiceStepLabelEl.textContent = "Choose a lesson and press Start.";
   } else if (status.awaitingRelease) {
     practiceStepLabelEl.textContent = `Step ${status.stepNum}/${status.total}: release the target notes.`;
@@ -487,17 +561,17 @@ function renderRhythmGuide(status) {
 
   const challenge = status?.currentChallenge;
   const events = Array.isArray(challenge?.rhythm) ? challenge.rhythm : [];
-  const show = appMode === "lesson" && status?.active && status.mode === "rhythmDrill" && events.length > 0;
+  const show = appMode === "lesson" && status?.title && status.mode === "rhythmDrill" && events.length > 0;
   const exampleActive = rhythmExample.active && rhythmExample.stepIndex === status?.stepIndex;
   const guideIndex = exampleActive ? rhythmExample.eventIndex : (status?.inputIndex ?? 0);
   rhythmGuideEl.hidden = !show;
   rhythmGuideEventsEl.innerHTML = "";
   if (beginRhythmBtn) {
-    beginRhythmBtn.hidden = !show || !status.rhythmReady;
+    beginRhythmBtn.hidden = !show || !status.rhythmReady || status.preview;
     beginRhythmBtn.disabled = exampleActive;
   }
   if (playRhythmExampleBtn) {
-    playRhythmExampleBtn.hidden = !show || !status.rhythmReady;
+    playRhythmExampleBtn.hidden = !show || (!status.rhythmReady && !status.preview);
     playRhythmExampleBtn.disabled = exampleActive;
     playRhythmExampleBtn.textContent = exampleActive ? "Playing Example" : "Play Example";
   }
@@ -514,6 +588,8 @@ function renderRhythmGuide(status) {
   const activeLabel = activeEvent?.note == null ? "Rest" : midiToName(activeEvent.note);
   rhythmGuideMetaEl.textContent = exampleActive
     ? `Example: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Watch the blocks and listen for where notes and rests land.`
+    : status.preview
+    ? `Study this rhythm before you start. Use Play Example to hear the pattern without scoring.`
     : status.rhythmReady
     ? `Study this rhythm first. Gray blocks are rests. Press Begin Rhythm when you are ready for the count-in.`
     : `Current target: ${activeLabel} at beat ${formatBeatPosition(beatOffset)}. Rests are gray; the bright block is next.`;
@@ -560,11 +636,11 @@ function formatBeatPosition(offset) {
 }
 
 async function playRhythmExample() {
-  const status = lessonEngine.getStatus();
+  const status = getLessonDisplayStatus();
   const events = Array.isArray(status.currentChallenge?.rhythm)
     ? status.currentChallenge.rhythm
     : [];
-  if (!status.active || status.mode !== "rhythmDrill" || !status.rhythmReady || events.length === 0) return;
+  if (status.mode !== "rhythmDrill" || (!status.rhythmReady && !status.preview) || events.length === 0) return;
 
   clearRhythmExample();
 
@@ -622,9 +698,11 @@ async function playRhythmExample() {
 
   const doneTimer = setTimeout(() => {
     clearRhythmExample();
-    const nextStatus = lessonEngine.getStatus();
+    const nextStatus = getLessonDisplayStatus();
     renderRhythmGuide(nextStatus);
-    if (practiceFeedbackEl && nextStatus.rhythmReady) {
+    if (practiceFeedbackEl && nextStatus.preview) {
+      practiceFeedbackEl.textContent = "Example complete. Press Start when you are ready.";
+    } else if (practiceFeedbackEl && nextStatus.rhythmReady) {
       practiceFeedbackEl.textContent = "Example complete. Press Begin Rhythm when you are ready.";
     }
   }, exampleStartDelay + totalBeats * msPerBeat + 120);
@@ -761,17 +839,19 @@ async function initLessons() {
 
     await preloadLessonFromSelect();
     setLessonControlsEnabled(true);
-    renderLessonStatus(lessonEngine.getStatus());
+    renderLessonStatus(getLessonDisplayStatus());
 
     select.addEventListener("change", async () => {
       try {
+        clearRhythmExample();
         await preloadLessonFromSelect();
         setLessonControlsEnabled(true);
         if (lessonEngine.active) {
           const l = getSelectedLesson();
           if (l) lessonEngine.start(l);
         } else {
-          renderLessonStatus(lessonEngine.getStatus());
+          renderLessonStatus(getLessonDisplayStatus());
+          renderPracticeStats();
         }
       } catch (err) {
         console.error("Lesson load failed:", err);
@@ -830,7 +910,7 @@ async function preloadLessonFromSelect() {
     loadedLessons.set(id, lesson);
   }
 
-  renderLessonStatus(lessonEngine.getStatus());
+  renderLessonStatus(getLessonDisplayStatus());
 }
 
 document.getElementById("btnAudio").addEventListener("click", async () => {
