@@ -347,6 +347,10 @@
   align-items: center;
 }
 
+.earTrainingControls[hidden] {
+  display: none;
+}
+
 .practiceSummary {
   padding: 8px 10px;
   border: 1px solid rgba(160,255,218,.28);
