@@ -354,6 +354,11 @@ export class LessonEngine {
     const step = this.getStep();
     if (!step) return;
 
+    if (step.scored === false) {
+      this.continueCurrentChallenge();
+      return;
+    }
+
     if (answer === step.answer) {
       this._emitPractice("correctnote", {
         answer,
@@ -369,6 +374,14 @@ export class LessonEngine {
       expectedAnswer: step.answer
     });
     this._emitStatus();
+  }
+
+  continueCurrentChallenge() {
+    if (!this.active || !this.lesson) return;
+    this._emitPractice("teachingcontinue", {
+      stepIndex: this.stepIndex
+    });
+    this.completeStep();
   }
 
   completeStep() {

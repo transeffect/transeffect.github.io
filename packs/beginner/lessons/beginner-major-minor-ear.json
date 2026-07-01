@@ -7,15 +7,42 @@
   "overview": "Major chords usually sound bright or settled. Minor chords usually sound darker or more serious.",
   "goal": "Choose whether the played chord is major or minor.",
   "instructions": [
-    "Press Start, then use Play Chord.",
-    "Listen to the overall quality, not just the individual notes.",
-    "Choose major or minor after the sound is clear."
+    "First, listen to labeled examples of major and minor chords.",
+    "Use Continue after each example when the sound is clear.",
+    "In the quiz steps, listen to the chord and choose major or minor."
   ],
   "challenges": [
     {
-      "id": "c-major",
+      "id": "learn-major",
+      "type": "lessonPrompt",
+      "label": "Learn the major sound",
+      "scored": false,
+      "hint": "Major chords often sound bright, open, or settled.",
+      "prompt": {
+        "type": "chord",
+        "label": "C major",
+        "notes": [60, 64, 67],
+        "playStyle": "blocked"
+      }
+    },
+    {
+      "id": "learn-minor",
+      "type": "lessonPrompt",
+      "label": "Learn the minor sound",
+      "scored": false,
+      "hint": "Minor chords often sound darker, sadder, or more serious.",
+      "prompt": {
+        "type": "chord",
+        "label": "A minor",
+        "notes": [57, 60, 64],
+        "playStyle": "blocked"
+      }
+    },
+    {
+      "id": "quiz-c-major-quality",
       "type": "heardChord",
-      "label": "Identify C major",
+      "label": "Listen and choose the chord quality",
+      "hint": "Do not worry about the chord name yet. Decide whether the overall quality is major or minor.",
       "prompt": {
         "type": "chord",
         "notes": [60, 64, 67],
@@ -25,15 +52,29 @@
       "choices": ["major", "minor"]
     },
     {
-      "id": "a-minor",
+      "id": "quiz-a-minor-quality",
       "type": "heardChord",
-      "label": "Identify A minor",
+      "label": "Listen and choose the chord quality",
+      "hint": "Compare this sound to the major example you heard earlier.",
       "prompt": {
         "type": "chord",
         "notes": [57, 60, 64],
         "playStyle": "blocked"
       },
       "answer": "minor",
+      "choices": ["major", "minor"]
+    },
+    {
+      "id": "quiz-g-major-quality",
+      "type": "heardChord",
+      "label": "Listen and choose the chord quality",
+      "hint": "This uses a different root, so focus on quality instead of pitch height.",
+      "prompt": {
+        "type": "chord",
+        "notes": [67, 71, 74],
+        "playStyle": "blocked"
+      },
+      "answer": "major",
       "choices": ["major", "minor"]
     }
   ]

@@ -351,9 +351,21 @@ Use `earTraining` for heard prompts and user answers. The current app can play n
   "mode": "earTraining",
   "challenges": [
     {
+      "id": "learn-major",
+      "type": "lessonPrompt",
+      "label": "Learn the major sound",
+      "scored": false,
+      "prompt": {
+        "type": "chord",
+        "label": "C major",
+        "notes": [60, 64, 67],
+        "playStyle": "blocked"
+      }
+    },
+    {
       "id": "c-major",
       "type": "heardChord",
-      "label": "Identify the chord quality",
+      "label": "Listen and choose the chord quality",
       "prompt": {
         "type": "chord",
         "notes": [60, 64, 67],
@@ -369,9 +381,10 @@ Use `earTraining` for heard prompts and user answers. The current app can play n
 Required keys:
 - `mode`: `earTraining`
 - `challenges[].prompt`: object with a non-empty `type`
-- `challenges[].answer`: expected answer
+- `challenges[].answer`: expected answer unless `challenges[].scored` is `false`
 
 Important optional keys:
+- `challenges[].scored`: set to `false` for unscored teaching prompts with Play/Continue controls
 - `challenges[].choices`: answer choices for multiple-choice flows
 - `challenges[].prompt.notes`: MIDI notes to play
 - `challenges[].prompt.playStyle`: `blocked`, `arpeggiated`, or `melodic`

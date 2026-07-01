@@ -179,7 +179,12 @@ function validateChallenge(challenge, path, mode) {
     if (challenge.prompt == null) throw new Error(`${path}.prompt is required`);
     assertPlainObject(challenge.prompt, `${path}.prompt`);
     assertNonEmptyString(challenge.prompt.type, `${path}.prompt.type`);
-    if (challenge.answer == null) throw new Error(`${path}.answer is required`);
+    if (challenge.scored != null && typeof challenge.scored !== "boolean") {
+      throw new Error(`${path}.scored must be a boolean`);
+    }
+    if (challenge.scored !== false && challenge.answer == null) {
+      throw new Error(`${path}.answer is required`);
+    }
   }
 }
 

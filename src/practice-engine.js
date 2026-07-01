@@ -181,6 +181,12 @@ export class PracticeEngine {
       return this.getSnapshot();
     }
 
+    if (type === "teachingcontinue") {
+      if (!this.session.active) return this.getSnapshot();
+      this.session.lastMessage = "Example reviewed.";
+      return this.getSnapshot();
+    }
+
     if (type === "stepcomplete") {
       if (!this.session.active) return this.getSnapshot();
       this.session.completedSteps = Math.max(this.session.completedSteps, detail.stepNum || 0);

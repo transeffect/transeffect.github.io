@@ -796,6 +796,17 @@ function renderEarTrainingControls(status) {
     playPromptBtn.textContent = getPromptButtonLabel(challenge.prompt);
   }
 
+  if (challenge.scored === false) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Continue";
+    btn.addEventListener("click", () => {
+      lessonEngine.continueCurrentChallenge();
+    });
+    earChoicesEl.appendChild(btn);
+    return;
+  }
+
   for (const choice of challenge.choices || []) {
     const btn = document.createElement("button");
     btn.type = "button";
