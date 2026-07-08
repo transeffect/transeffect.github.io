@@ -89,10 +89,10 @@
 	    .audioCue {
 	      position: absolute;
 	      left: 50%;
-	      top: calc(100% + 10px);
+	      top: calc(100% + 8px);
 	      display: grid;
 	      justify-items: center;
-	      gap: 4px;
+	      gap: 7px;
 	      transform: translateX(-50%);
 	      pointer-events: none;
 	      z-index: 20;
@@ -104,13 +104,13 @@
 	    }
 
 	    .audioCueText {
-	      padding: 6px 9px;
-	      border: 1px solid rgba(160,255,218,.42);
+	      padding: 7px 10px;
+	      border: 2px solid rgba(18,112,58,.85);
 	      border-radius: 999px;
-	      background: #101820;
-	      color: var(--active2);
-	      box-shadow: 0 10px 24px rgba(0,0,0,.35);
-	      font-size: 12px;
+	      background: #f2fff6;
+	      color: #0f6b36;
+	      box-shadow: 0 10px 26px rgba(0,0,0,.35), 0 0 18px rgba(42,174,91,.38);
+	      font-size: 13px;
 	      font-weight: 700;
 	      line-height: 1;
 	      white-space: nowrap;
@@ -118,23 +118,42 @@
 
 	    .audioCueArrow {
 	      position: relative;
-	      width: 0;
-	      height: 44px;
-	      border-left: 6px solid var(--active2);
-	      filter: drop-shadow(0 8px 10px rgba(0,0,0,.45));
+	      width: 26px;
+	      height: 54px;
+	      border: 3px solid #0f6b36;
+	      border-top: 0;
+	      border-radius: 0 0 8px 8px;
+	      background: #2aae5b;
+	      box-shadow:
+	        0 0 0 3px rgba(242,255,246,.9),
+	        0 0 22px rgba(42,174,91,.72),
+	        0 12px 22px rgba(0,0,0,.45);
 	    }
 
 	    .audioCueArrow::before {
 	      content: "";
 	      position: absolute;
 	      left: 50%;
-	      top: -16px;
+	      top: -31px;
 	      width: 0;
 	      height: 0;
-	      border-left: 14px solid transparent;
-	      border-right: 14px solid transparent;
-	      border-bottom: 18px solid var(--active2);
-	      transform: translateX(calc(-50% - 3px));
+	      border-left: 27px solid transparent;
+	      border-right: 27px solid transparent;
+	      border-bottom: 34px solid #0f6b36;
+	      transform: translateX(-50%);
+	    }
+
+	    .audioCueArrow::after {
+	      content: "";
+	      position: absolute;
+	      left: 50%;
+	      top: -24px;
+	      width: 0;
+	      height: 0;
+	      border-left: 20px solid transparent;
+	      border-right: 20px solid transparent;
+	      border-bottom: 25px solid #2aae5b;
+	      transform: translateX(-50%);
 	    }
 
 	    @keyframes audioCueFloat {
