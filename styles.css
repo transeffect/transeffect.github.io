@@ -139,12 +139,11 @@
 	    }
 
 	    .audioCueArrow::before {
-	      border: 3px solid #f2fff6;
 	      background-color: #0f6b36;
 	      height: 75%;
 	      width: 45%;
-	      top: 50%;
-	      left: 28%;
+	      top: 49%;
+	      left: 24%;
 	      border-radius: 0 0 7px 7px;
 	    }
 	
