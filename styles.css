@@ -117,43 +117,42 @@
 	    }
 
 	    .audioCueArrow {
+	      display: inline-block;
 	      position: relative;
-	      width: 26px;
-	      height: 54px;
-	      border: 3px solid #0f6b36;
-	      border-top: 0;
-	      border-radius: 0 0 8px 8px;
-	      background: #2aae5b;
-	      box-shadow:
-	        0 0 0 3px rgba(242,255,246,.9),
-	        0 0 22px rgba(42,174,91,.72),
-	        0 12px 22px rgba(0,0,0,.45);
+	      width: 60px;
+	      height: 60px;
+	      margin: 10px;
+	      filter:
+	        drop-shadow(0 0 2px #f2fff6)
+	        drop-shadow(0 0 0 #f2fff6)
+	        drop-shadow(0 0 10px rgba(42,174,91,.85))
+	        drop-shadow(0 10px 14px rgba(0,0,0,.45));
+	    }
+
+	    .audioCueArrow::before,
+	    .audioCueArrow::after {
+	      content: '';
+	      border-color: transparent;
+	      border-bottom-color: transparent;
+	      border-style: solid;
+	      position: absolute;
 	    }
 
 	    .audioCueArrow::before {
-	      content: "";
-	      position: absolute;
-	      left: 50%;
-	      top: -31px;
-	      width: 0;
-	      height: 0;
-	      border-left: 27px solid transparent;
-	      border-right: 27px solid transparent;
-	      border-bottom: 34px solid #0f6b36;
-	      transform: translateX(-50%);
+	      border: 3px solid #f2fff6;
+	      background-color: #0f6b36;
+	      height: 75%;
+	      width: 45%;
+	      top: 50%;
+	      left: 28%;
+	      border-radius: 0 0 7px 7px;
 	    }
-
+	
 	    .audioCueArrow::after {
-	      content: "";
-	      position: absolute;
-	      left: 50%;
-	      top: -24px;
-	      width: 0;
-	      height: 0;
-	      border-left: 20px solid transparent;
-	      border-right: 20px solid transparent;
-	      border-bottom: 25px solid #2aae5b;
-	      transform: translateX(-50%);
+	      left: 0;
+	      top: -50%;
+	      border-width: 30px 30px;
+	      border-bottom-color: #0f6b36;
 	    }
 
 	    @keyframes audioCueFloat {
