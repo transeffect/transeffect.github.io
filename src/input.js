@@ -13,9 +13,9 @@ export function setupInputHandlers({
   getOctaveOffset,
   baseStart = 60
 }) {
-  const qwertyWhite = ["KeyA","KeyS","KeyD","KeyF","KeyG","KeyH","KeyJ","KeyK"];
+  const qwertyWhite = ["KeyA","KeyS","KeyD","KeyF","KeyG","KeyH","KeyJ","KeyK","KeyL","Semicolon","Quote"];
   const qwertyBlack = ["KeyW","KeyE","KeyT","KeyY","KeyU"];
-  const whiteOffsets = [0, 2, 4, 5, 7, 9, 11, 12];
+  const whiteOffsets = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17];
   const blackOffsets = [1, 3, 6, 8, 10];
   const qwertyCodeToOffset = new Map();
 
