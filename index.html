@@ -22,7 +22,13 @@
           <button id="btnFreePlayMode" aria-pressed="true">Free Play</button>
           <button id="btnLessonMode" aria-pressed="false">Lesson</button>
         </div>
-        <button id="btnAudio" aria-pressed="false">Audio: Off</button>
+        <div class="audioButtonWrap">
+          <button id="btnAudio" aria-pressed="false">Audio: Off</button>
+          <div id="audioCue" class="audioCue" aria-hidden="true">
+            <span class="audioCueText">Start here</span>
+            <span class="audioCueArrow"></span>
+          </div>
+        </div>
         <button id="btnMode" aria-pressed="false">Mode: Piano</button>
         <button id="btnSustain" aria-pressed="false">Sustain: Off</button>
 
@@ -123,7 +129,7 @@
 
       <div class="footerRow">
         <div class="kbdHint">
-          Mouse/touch: press keys (drag works). QWERTY: A-K plus L ; '. Audio requires a click/tap first. Toggle mode with O. V.0.18.000
+          Mouse/touch: press keys (drag works). QWERTY: A-K plus L ; '. Audio requires a click/tap first. Toggle mode with O. V.0.18.001
         </div>
         <div id="status">Audio: not enabled</div>
       </div>

@@ -10,6 +10,7 @@ import { PracticeEngine, formatDuration } from "./practice-engine.js";
 
 const pianoEl = document.getElementById("piano");
 const statusEl = document.getElementById("status");
+const audioCueEl = document.getElementById("audioCue");
 const velEl = document.getElementById("vel");
 const volEl = document.getElementById("vol");
 const panWidthEl = document.getElementById("panWidth");
@@ -394,6 +395,7 @@ function handleNoteEnded(note) {
 
 async function setAudioEnabled(next) {
   audioEnabled = !!next;
+  renderAudioCue();
 
   const btn = document.getElementById("btnAudio");
   btn.setAttribute("aria-pressed", String(audioEnabled));
@@ -412,11 +414,16 @@ async function setAudioEnabled(next) {
     }
   } catch (err) {
     audioEnabled = false;
+    renderAudioCue();
     btn.setAttribute("aria-pressed", "false");
     btn.textContent = "Audio: Off";
     statusEl.textContent = "Audio: unavailable";
     throw err;
   }
+}
+
+function renderAudioCue() {
+  if (audioCueEl) audioCueEl.hidden = audioEnabled;
 }
 
 function setPlayMode(next) {
@@ -1205,6 +1212,7 @@ window.addEventListener("blur", () => {
 
 setupMenus();
 setPlayMode("piano");
+renderAudioCue();
 renderAppMode();
 renderPiano();
 renderPracticeStats();

@@ -81,6 +81,73 @@
 	      color: #fff;
 	    }
 
+	    .audioButtonWrap {
+	      position: relative;
+	      display: inline-flex;
+	    }
+
+	    .audioCue {
+	      position: absolute;
+	      left: 50%;
+	      top: calc(100% + 10px);
+	      display: grid;
+	      justify-items: center;
+	      gap: 4px;
+	      transform: translateX(-50%);
+	      pointer-events: none;
+	      z-index: 20;
+	      animation: audioCueFloat 1.05s ease-in-out infinite;
+	    }
+
+	    .audioCue[hidden] {
+	      display: none;
+	    }
+
+	    .audioCueText {
+	      padding: 6px 9px;
+	      border: 1px solid rgba(160,255,218,.42);
+	      border-radius: 999px;
+	      background: #101820;
+	      color: var(--active2);
+	      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+	      font-size: 12px;
+	      font-weight: 700;
+	      line-height: 1;
+	      white-space: nowrap;
+	    }
+
+	    .audioCueArrow {
+	      position: relative;
+	      width: 0;
+	      height: 44px;
+	      border-left: 6px solid var(--active2);
+	      filter: drop-shadow(0 8px 10px rgba(0,0,0,.45));
+	    }
+
+	    .audioCueArrow::before {
+	      content: "";
+	      position: absolute;
+	      left: 50%;
+	      top: -16px;
+	      width: 0;
+	      height: 0;
+	      border-left: 14px solid transparent;
+	      border-right: 14px solid transparent;
+	      border-bottom: 18px solid var(--active2);
+	      transform: translateX(calc(-50% - 3px));
+	    }
+
+	    @keyframes audioCueFloat {
+	      0%, 100% { transform: translate(-50%, 0); }
+	      50% { transform: translate(-50%, 9px); }
+	    }
+
+	    @media (prefers-reduced-motion: reduce) {
+	      .audioCue {
+	        animation: none;
+	      }
+	    }
+
     button, .pill {
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.14);
