@@ -14,24 +14,55 @@
   "steps": [
     {
       "label": "Play C",
+      "fingering": {
+        "hand": "right",
+        "pattern": "1",
+        "notes": {
+          "60": 1
+        }
+      },
       "notes": [
         60
       ]
     },
     {
       "label": "Play E",
+      "fingering": {
+        "hand": "right",
+        "pattern": "3",
+        "notes": {
+          "64": 3
+        }
+      },
       "notes": [
         64
       ]
     },
     {
       "label": "Play G",
+      "fingering": {
+        "hand": "right",
+        "pattern": "5",
+        "notes": {
+          "67": 5
+        }
+      },
       "notes": [
         67
       ]
     },
     {
       "label": "Play C major chord",
+      "fingering": {
+        "hand": "right",
+        "pattern": "1-3-5",
+        "notes": {
+          "60": 1,
+          "64": 3,
+          "67": 5
+        },
+        "note": "For this beginner chord, place your thumb on C, middle finger on E, and pinky on G."
+      },
       "notes": [
         60,
         64,

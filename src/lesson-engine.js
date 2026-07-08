@@ -580,7 +580,8 @@ export class LessonEngine {
         goal: this.lesson.goal || "",
         overview: this.lesson.overview || this.lesson.description || "",
         instructions: Array.isArray(this.lesson.instructions) ? this.lesson.instructions : [],
-        hint: this.getStep()?.hint || this.lesson.hint || ""
+        hint: this.getStep()?.hint || this.lesson.hint || "",
+        fingering: this.getStep()?.fingering || this.lesson.fingering || null
       } : null,
       challenges: this.lesson?.challenges || [],
       currentChallenge: this.getStep(),

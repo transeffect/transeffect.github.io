@@ -87,6 +87,7 @@ export function validateLesson(lesson, sourcePath = "lesson") {
   assertOptionalNonEmptyString(lesson.goal, `${sourcePath}.goal`);
   assertOptionalNonEmptyString(lesson.hint, `${sourcePath}.hint`);
   assertOptionalStringArray(lesson.instructions, `${sourcePath}.instructions`);
+  validateOptionalFingering(lesson.fingering, `${sourcePath}.fingering`);
 
   if (lesson.mode == null) {
     lesson.mode = PRACTICE_MODES.STEP_LESSON;
@@ -147,6 +148,7 @@ function validateStep(step, path) {
   assertPlainObject(step, path);
   if (step.id != null) assertNonEmptyString(step.id, `${path}.id`);
   if (step.label != null) assertNonEmptyString(step.label, `${path}.label`);
+  validateOptionalFingering(step.fingering, `${path}.fingering`);
   validateMidiNoteArray(step.notes, `${path}.notes`);
 }
 
@@ -156,6 +158,7 @@ function validateChallenge(challenge, path, mode) {
   if (challenge.type != null) assertNonEmptyString(challenge.type, `${path}.type`);
   if (challenge.label != null) assertNonEmptyString(challenge.label, `${path}.label`);
   assertOptionalNonEmptyString(challenge.hint, `${path}.hint`);
+  validateOptionalFingering(challenge.fingering, `${path}.fingering`);
 
   if (mode === PRACTICE_MODES.STEP_LESSON || mode === PRACTICE_MODES.CHORD_DRILL) {
     validateMidiNoteArray(challenge.notes, `${path}.notes`);
@@ -194,6 +197,29 @@ function validateChallenge(challenge, path, mode) {
     if (challenge.scored !== false && challenge.answer == null) {
       throw new Error(`${path}.answer is required`);
     }
+  }
+}
+
+function validateOptionalFingering(fingering, path) {
+  if (fingering == null) return;
+  assertPlainObject(fingering, path);
+  if (!["left", "right", "both"].includes(fingering.hand)) {
+    throw new Error(`${path}.hand must be "left", "right", or "both"`);
+  }
+  assertOptionalNonEmptyString(fingering.pattern, `${path}.pattern`);
+  assertOptionalNonEmptyString(fingering.note, `${path}.note`);
+
+  if (fingering.notes != null) {
+    assertPlainObject(fingering.notes, `${path}.notes`);
+    Object.entries(fingering.notes).forEach(([note, finger]) => {
+      const midiNote = Number(note);
+      if (!Number.isInteger(midiNote) || midiNote < 0 || midiNote > 127) {
+        throw new Error(`${path}.notes keys must be MIDI note integers from 0 to 127`);
+      }
+      if (!Number.isInteger(finger) || finger < 1 || finger > 5) {
+        throw new Error(`${path}.notes.${note} must be a finger number from 1 to 5`);
+      }
+    });
   }
 }
 

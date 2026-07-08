@@ -11,6 +11,18 @@
     "Play the highlighted note or note pair.",
     "Release before the next target appears."
   ],
+  "fingering": {
+    "hand": "right",
+    "pattern": "1-2-3-4-5",
+    "notes": {
+      "60": 1,
+      "62": 2,
+      "64": 3,
+      "65": 4,
+      "67": 5
+    },
+    "note": "Finger numbers start at your thumb: 1 thumb, 2 index, 3 middle, 4 ring, 5 pinky."
+  },
   "settings": {
     "requireRelease": true
   },

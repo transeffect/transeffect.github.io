@@ -548,11 +548,13 @@ function getPreviewFeedback(status) {
 }
 
 function getTeachingNotes(lesson, challenge) {
+  const fingering = challenge?.fingering || lesson.fingering || null;
   return {
     goal: lesson.goal || "",
     overview: lesson.overview || lesson.description || "",
     instructions: Array.isArray(lesson.instructions) ? lesson.instructions : [],
-    hint: challenge?.hint || lesson.hint || ""
+    hint: challenge?.hint || lesson.hint || "",
+    fingering
   };
 }
 
@@ -595,7 +597,8 @@ function renderTeachingNotes(status) {
 
   const teaching = status?.teaching || getTeachingNotes(getSelectedLesson() || {}, status?.currentChallenge);
   const instructions = Array.isArray(teaching.instructions) ? teaching.instructions : [];
-  const hasContent = !!(teaching.goal || teaching.overview || teaching.hint || instructions.length);
+  const fingeringText = formatFingering(teaching.fingering);
+  const hasContent = !!(teaching.goal || teaching.overview || teaching.hint || instructions.length || fingeringText.length);
   lessonTeachingEl.hidden = !hasContent || appMode !== "lesson";
 
   if (!hasContent) {
@@ -615,8 +618,55 @@ function renderTeachingNotes(status) {
     li.textContent = item;
     lessonInstructionsEl.appendChild(li);
   }
+  for (const item of fingeringText) {
+    const li = document.createElement("li");
+    li.textContent = item;
+    lessonInstructionsEl.appendChild(li);
+  }
   lessonHintEl.hidden = !teaching.hint;
   lessonHintEl.textContent = teaching.hint ? `Hint: ${teaching.hint}` : "";
+}
+
+function formatFingering(fingering) {
+  if (!fingering) return [];
+
+  const hand = formatHand(fingering.hand);
+  const lines = [];
+  const pattern = fingering.pattern ? ` Suggested pattern: ${fingering.pattern}.` : "";
+  lines.push(`${hand}: finger numbers are 1 thumb, 2 index, 3 middle, 4 ring, 5 pinky.${pattern}`);
+
+  const noteMap = fingering.notes || {};
+  const noteLines = Object.entries(noteMap)
+    .map(([note, finger]) => {
+      const midiNote = Number(note);
+      if (!Number.isInteger(midiNote)) return null;
+      return `${midiToName(midiNote)}: ${fingerName(finger)}`;
+    })
+    .filter(Boolean);
+
+  if (noteLines.length) {
+    lines.push(`Use ${noteLines.join(", ")}.`);
+  }
+
+  if (fingering.note) lines.push(fingering.note);
+  return lines;
+}
+
+function formatHand(hand) {
+  if (hand === "left") return "Left hand";
+  if (hand === "both") return "Both hands";
+  return "Right hand";
+}
+
+function fingerName(finger) {
+  const names = {
+    1: "1 thumb",
+    2: "2 index",
+    3: "3 middle",
+    4: "4 ring",
+    5: "5 pinky"
+  };
+  return names[finger] || `finger ${finger}`;
 }
 
 function renderRhythmGuide(status) {

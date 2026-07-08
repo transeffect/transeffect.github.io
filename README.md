@@ -119,16 +119,41 @@ Lesson rules:
 - `mode` is optional and defaults to `stepLesson`.
 - `overview`, `goal`, `instructions`, and `hint` are optional teaching fields shown in the Lesson HUD.
 - `instructions` must be an array of short strings when present.
+- `fingering` is optional at the lesson, step, or challenge level. It shows beginner-readable hand and finger guidance in the Lesson HUD.
 - `settings` is optional.
 - `settings.requireRelease` defaults to `false` and must be boolean when present.
 - `steps` is the legacy `stepLesson` format and must be a non-empty array when `challenges` is omitted.
 - `challenges` is the normalized practice-engine format and must be a non-empty array when present.
 - Each step may have a `label`.
 - Each challenge may have a `hint` shown in the Lesson HUD for the current challenge.
+- Each challenge may have `fingering` to override lesson-level fingering for the current target.
 - Each step must have a non-empty `notes` array.
 - Notes must be unique MIDI note integers from `0` to `127`.
 
 When `requireRelease` is `true`, the player must press all required notes for the current step, then physically release them before the lesson advances.
+
+Fingering uses standard piano finger numbers:
+
+```json
+{
+  "fingering": {
+    "hand": "right",
+    "pattern": "1-3-5",
+    "notes": {
+      "60": 1,
+      "64": 3,
+      "67": 5
+    },
+    "note": "For this beginner chord, place your thumb on C, middle finger on E, and pinky on G."
+  }
+}
+```
+
+Fingering rules:
+- `hand` must be `left`, `right`, or `both`.
+- Finger numbers are `1` thumb, `2` index, `3` middle, `4` ring, and `5` pinky.
+- `notes` maps MIDI note numbers to finger numbers.
+- Fingering is instructional only; the app cannot verify which physical finger was used.
 
 ## Practice Modes
 
