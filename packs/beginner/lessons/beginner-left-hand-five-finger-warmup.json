@@ -1,0 +1,68 @@
+{
+  "id": "beginner-left-hand-five-finger-warmup",
+  "title": "Left Hand Five-Finger Warmup",
+  "mode": "stepLesson",
+  "level": "beginner",
+  "description": "Build comfort with the left-hand C major five-finger position.",
+  "overview": "This is a left-hand warmup. Left-hand five-finger position places your pinky on C and one finger on each white key through G.",
+  "goal": "Connect left-hand finger position with the first five white keys of C major.",
+  "instructions": [
+    "Use your left hand.",
+    "Keep your left hand relaxed over C, D, E, F, and G.",
+    "Play the highlighted note or note pair.",
+    "Release before the next target appears."
+  ],
+  "fingering": {
+    "hand": "left",
+    "pattern": "5-4-3-2-1",
+    "notes": {
+      "60": 5,
+      "62": 4,
+      "64": 3,
+      "65": 2,
+      "67": 1
+    },
+    "note": "For left hand, your pinky starts on C and your thumb rests on G."
+  },
+  "settings": {
+    "requireRelease": true
+  },
+  "challenges": [
+    {
+      "id": "c",
+      "type": "noteSet",
+      "label": "Play C with pinky",
+      "notes": [60]
+    },
+    {
+      "id": "d",
+      "type": "noteSet",
+      "label": "Play D with ring finger",
+      "notes": [62]
+    },
+    {
+      "id": "e",
+      "type": "noteSet",
+      "label": "Play E with middle finger",
+      "notes": [64]
+    },
+    {
+      "id": "f",
+      "type": "noteSet",
+      "label": "Play F with index finger",
+      "notes": [65]
+    },
+    {
+      "id": "g",
+      "type": "noteSet",
+      "label": "Play G with thumb",
+      "notes": [67]
+    },
+    {
+      "id": "c-g",
+      "type": "noteSet",
+      "label": "Play C and G together",
+      "notes": [60, 67]
+    }
+  ]
+}

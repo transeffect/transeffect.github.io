@@ -15,8 +15,13 @@
     },
     {
       "id": "beginner-five-finger-warmup",
-      "title": "Beginner Five-Finger Warmup",
+      "title": "Right Hand Five-Finger Warmup",
       "file": "lessons/beginner-five-finger-warmup.json"
+    },
+    {
+      "id": "beginner-left-hand-five-finger-warmup",
+      "title": "Left Hand Five-Finger Warmup",
+      "file": "lessons/beginner-left-hand-five-finger-warmup.json"
     },
     {
       "id": "beginner-c-and-g-chords",

@@ -76,6 +76,8 @@ const keyboardHeld = new Set();
 const loadedLessons = new Map();
 const practiceEngine = new PracticeEngine();
 const rhythmExampleTimers = new Set();
+let repeatLessonOn = false;
+let lessonLoopCount = 1;
 let rhythmExample = {
   active: false,
   stepIndex: null,
@@ -216,6 +218,40 @@ function handlePracticeEvent(event) {
   if (event.type === "rhythmbeat") playMetronomeClick(event.detail?.isDownbeat);
   practiceEngine.handleEvent(event);
   renderPracticeStats();
+
+  if (event.type === "lessonstop" && event.detail?.reason === "completed" && repeatLessonOn) {
+    scheduleRepeatedLesson();
+  }
+}
+
+function setRepeatLesson(next) {
+  repeatLessonOn = !!next;
+  const btn = document.getElementById("btnLessonRepeat");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(repeatLessonOn));
+    btn.textContent = repeatLessonOn ? "Repeat: On" : "Repeat: Off";
+  }
+  if (!repeatLessonOn) lessonLoopCount = 1;
+}
+
+function startSelectedLesson({ repeated = false } = {}) {
+  const lesson = getSelectedLesson();
+  if (!lesson) return;
+
+  clearRhythmExample();
+  if (!repeated) lessonLoopCount = 1;
+  lessonEngine.start(expandGeneratedChallenges(lesson));
+  if (practiceFeedbackEl && repeated) {
+    practiceFeedbackEl.textContent = `Loop ${lessonLoopCount} started.`;
+  }
+}
+
+function scheduleRepeatedLesson() {
+  lessonLoopCount += 1;
+  setTimeout(() => {
+    if (!repeatLessonOn || appMode !== "lesson") return;
+    startSelectedLesson({ repeated: true });
+  }, 250);
 }
 
 function playMetronomeClick(isDownbeat = false) {
@@ -430,10 +466,12 @@ function setLessonControlsEnabled(isLoaded) {
   const stopBtn = document.getElementById("btnLessonStop");
   const prevBtn = document.getElementById("btnLessonPrev");
   const nextBtn = document.getElementById("btnLessonNext");
+  const repeatBtn = document.getElementById("btnLessonRepeat");
   startBtn.disabled = !isLoaded;
   stopBtn.disabled = !isLoaded;
   prevBtn.disabled = !isLoaded;
   nextBtn.disabled = !isLoaded;
+  if (repeatBtn) repeatBtn.disabled = !isLoaded;
 }
 
 function renderLessonStatus(status) {
@@ -971,8 +1009,7 @@ async function initLessons() {
         await preloadLessonFromSelect();
         setLessonControlsEnabled(true);
         if (lessonEngine.active) {
-          const l = getSelectedLesson();
-          if (l) lessonEngine.start(expandGeneratedChallenges(l));
+          startSelectedLesson();
         } else {
           renderLessonStatus(getLessonDisplayStatus());
           renderPracticeStats();
@@ -985,8 +1022,7 @@ async function initLessons() {
     });
 
     document.getElementById("btnLessonStart").addEventListener("click", () => {
-      const l = getSelectedLesson();
-      if (l) lessonEngine.start(expandGeneratedChallenges(l));
+      startSelectedLesson();
     });
 
     document.getElementById("btnLessonStop").addEventListener("click", () => {
@@ -999,6 +1035,10 @@ async function initLessons() {
 
     document.getElementById("btnLessonNext").addEventListener("click", () => {
       lessonEngine.next();
+    });
+
+    document.getElementById("btnLessonRepeat").addEventListener("click", () => {
+      setRepeatLesson(!repeatLessonOn);
     });
   } catch (err) {
     console.error("Lesson init failed:", err);
